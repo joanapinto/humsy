@@ -1,0 +1,89 @@
+# Virtual environment
+venv/
+
+# Environment variables
+.env
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Logs and temporary files
+*.log
+*.tmp
+
+# Build/distribution
+dist/
+build/
+*.egg-info/
+
+# IDE/editor settings
+.vscode/
+
+# User data files (keep these for backup purposes)
+logs/
+*.json
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db 
+
+# Beta testers emails
+allowed_emails.txt
+
+# Usage tracking and session data (contains user-specific data)
+data/usage_tracking.json
+data/user_session.json
+data/focus_companion.db
+data/*_backup.json
+
+# AI Cache files
+data/ai_cache.json
+
+# Streamlit cache and temporary files
+.streamlit/
+
+# Python virtual environments
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Coverage reports
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+
+# pytest cache
+.pytest_cache/
+
+# mypy cache
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# pytype static type analyzer
+.pytype/
+
+# Cython debug symbols
+cython_debug/
+
+# Backup files
+*.bak
+*.backup
+*~
