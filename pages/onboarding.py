@@ -350,6 +350,9 @@ if goal_title and success_metric and starting_point and weekly_time:
         
         try:
             st.session_state.debug_messages.append("🔍 Calling db.create_goal()...")
+            st.session_state.debug_messages.append(f"🔍 Database path: {db.db_path}")
+            st.session_state.debug_messages.append(f"🔍 Database exists: {os.path.exists(db.db_path)}")
+            
             goal_id = db.create_goal(user_email, goal_data)
             st.session_state.debug_messages.append(f"🔍 Goal created with ID: {goal_id}")
         except Exception as e:
