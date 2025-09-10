@@ -54,6 +54,12 @@ require_beta_access()
 
 st.title("🧠 Welcome to Your Humsy")
 
+# Debug section - show persistent debug messages
+if st.session_state.get("debug_messages"):
+    with st.expander("🔍 Debug Information", expanded=True):
+        for msg in st.session_state.debug_messages:
+            st.write(msg)
+
 # Beta tester welcome message
 st.success("🎉 **Welcome to Humsy Beta!**")
 st.info("💡 **Pro Tip:** Take your time with these questions - they help the AI provide personalized insights!")
@@ -310,13 +316,17 @@ if goal_title and success_metric and starting_point and weekly_time:
     st.write(f"🔍 Button condition check - goal_title: {bool(goal_title)}, success_metric: {bool(success_metric)}, starting_point: {bool(starting_point)}, weekly_time: {bool(weekly_time)}")
     
     if st.button("🚀 Generate Plan", type="primary", use_container_width=True):
-        st.write("🔍 Button clicked! Starting plan generation...")
-        user_email = get_user_email() or "me@example.com"
-        st.write(f"🔍 User email: {user_email}")
-        db = DatabaseManager()
-        st.write("🔍 Database manager created")
+        # Store debug info in session state so it persists
+        st.session_state.debug_messages = []
+        st.session_state.debug_messages.append("🔍 Button clicked! Starting plan generation...")
         
-        st.write("🔍 About to create goal in database...")
+        user_email = get_user_email() or "me@example.com"
+        st.session_state.debug_messages.append(f"🔍 User email: {user_email}")
+        
+        db = DatabaseManager()
+        st.session_state.debug_messages.append("🔍 Database manager created")
+        
+        st.session_state.debug_messages.append("🔍 About to create goal in database...")
         goal_data = {
             "title": goal_title,
             "why_matters": why_matters,
@@ -336,22 +346,23 @@ if goal_title and success_metric and starting_point and weekly_time:
             "auto_adapt": True
         }
         
-        st.write(f"🔍 Goal data prepared: {goal_data}")
+        st.session_state.debug_messages.append(f"🔍 Goal data prepared: {goal_data}")
         
         try:
-            st.write("🔍 Calling db.create_goal()...")
+            st.session_state.debug_messages.append("🔍 Calling db.create_goal()...")
             goal_id = db.create_goal(user_email, goal_data)
-            st.write(f"🔍 Goal created with ID: {goal_id}")
+            st.session_state.debug_messages.append(f"🔍 Goal created with ID: {goal_id}")
         except Exception as e:
-            st.error(f"❌ Database error: {str(e)}")
-            st.write(f"🔍 Full error: {e}")
-            st.warning("🔄 **Streamlit Cloud Issue**: Database not persistent. Using session state instead.")
+            error_msg = f"❌ Database error: {str(e)}"
+            st.session_state.debug_messages.append(error_msg)
+            st.session_state.debug_messages.append(f"🔍 Full error: {e}")
+            st.session_state.debug_messages.append("🔄 **Streamlit Cloud Issue**: Database not persistent. Using session state instead.")
             
             # Fallback: Use session state instead of database
             goal_id = f"temp_{user_email}_{datetime.now().timestamp()}"
             st.session_state.temp_goal_id = goal_id
             st.session_state.temp_goal_data = goal_data
-            st.write(f"🔍 Using temporary goal ID: {goal_id}")
+            st.session_state.debug_messages.append(f"🔍 Using temporary goal ID: {goal_id}")
         
         # Generate plan
         ai = AIService()
@@ -373,36 +384,36 @@ if goal_title and success_metric and starting_point and weekly_time:
         
         with st.spinner("🤖 Generating your personalized plan..."):
             try:
-                st.write("🔍 Calling AI service...")
+                st.session_state.debug_messages.append("🔍 Calling AI service...")
                 plan = ai.generate_goal_plan(plan_data, user_email)
-                st.write(f"🔍 Plan received: {bool(plan)}")
+                st.session_state.debug_messages.append(f"🔍 Plan received: {bool(plan)}")
                 
                 if plan and plan.get("milestones"):
-                    st.write("🔍 Saving milestones and steps...")
+                    st.session_state.debug_messages.append("🔍 Saving milestones and steps...")
                     try:
                         db.save_milestones(goal_id, plan.get("milestones", []))
                         db.save_steps(goal_id, plan.get("steps", []))
                     except Exception as e:
-                        st.warning(f"⚠️ Database save failed: {str(e)}. Using session state.")
+                        st.session_state.debug_messages.append(f"⚠️ Database save failed: {str(e)}. Using session state.")
                         # Store in session state as fallback
                         st.session_state.temp_milestones = plan.get("milestones", [])
                         st.session_state.temp_steps = plan.get("steps", [])
                     
                     # Store in session state
-                    st.write("🔍 Setting session state...")
+                    st.session_state.debug_messages.append("🔍 Setting session state...")
                     st.session_state.plan_generated = True
                     st.session_state.generated_plan = plan
                     st.session_state.goal_id = goal_id
                     
                     st.success("🎉 Plan generated successfully!")
-                    st.write("🔍 About to call st.rerun()...")
+                    st.session_state.debug_messages.append("🔍 About to call st.rerun()...")
                     st.rerun()
                 else:
                     st.error("❌ Failed to generate plan. Please try again.")
-                    st.write(f"🔍 Plan data: {plan}")
+                    st.session_state.debug_messages.append(f"🔍 Plan data: {plan}")
             except Exception as e:
                 st.error(f"❌ Error during plan generation: {str(e)}")
-                st.write(f"🔍 Full error: {e}")
+                st.session_state.debug_messages.append(f"🔍 Full error: {e}")
 else:
     st.info("👆 Please fill in all mandatory fields (marked with *) to generate your personalized plan.")
 
