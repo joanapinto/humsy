@@ -2,9 +2,13 @@ import json
 import os
 from datetime import datetime
 from .database import DatabaseManager
+from .supabase_manager import SupabaseManager
 
-# Initialize database manager
-db = DatabaseManager()
+# Initialize database manager - try Supabase first, fallback to SQLite
+try:
+    db = SupabaseManager()
+except Exception as e:
+    db = DatabaseManager()
 
 PROFILE_PATH = "data/user_profile.json"
 MOOD_DATA_PATH = "data/mood_data.json"

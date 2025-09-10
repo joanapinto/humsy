@@ -315,3 +315,108 @@ class SupabaseManager:
         """Compatibility property for SQLite-style access"""
         # Return a dummy path since Supabase doesn't use local files
         return "supabase://remote"
+    
+    def save_mood_log(self, user_email: str, mood: str, intensity: int, notes: str = None):
+        """Save a mood log entry"""
+        try:
+            if not self.supabase_url or not self.supabase_key:
+                raise Exception("Supabase URL or key not configured")
+            
+            data = {
+                "user_email": user_email,
+                "mood": mood,
+                "intensity": intensity,
+                "notes": notes
+            }
+            
+            response = requests.post(
+                f"{self.supabase_url}/rest/v1/mood_logs",
+                headers=self.headers,
+                json=data
+            )
+            
+            if response.status_code not in [200, 201]:
+                raise Exception(f"Failed to save mood log: {response.text}")
+                
+        except Exception as e:
+            st.error(f"Failed to save mood log: {str(e)}")
+            raise
+    
+    def get_mood_logs(self, user_email: str, days: int = 30) -> List[Dict]:
+        """Get mood logs for a user"""
+        try:
+            if not self.supabase_url or not self.supabase_key:
+                raise Exception("Supabase URL or key not configured")
+            
+            response = requests.get(
+                f"{self.supabase_url}/rest/v1/mood_logs",
+                headers=self.headers,
+                params={
+                    "user_email": f"eq.{user_email}",
+                    "order": "created_at.desc",
+                    "limit": "1000"  # Adjust as needed
+                }
+            )
+            
+            if response.status_code == 200:
+                return response.json()
+            else:
+                raise Exception(f"Failed to get mood logs: {response.text}")
+                
+        except Exception as e:
+            st.error(f"Failed to get mood logs: {str(e)}")
+            return []
+    
+    def save_checkin(self, user_email: str, checkin_data: Dict[str, Any]):
+        """Save a check-in entry"""
+        try:
+            if not self.supabase_url or not self.supabase_key:
+                raise Exception("Supabase URL or key not configured")
+            
+            data = {
+                "user_email": user_email,
+                "goal_id": checkin_data.get('goal_id'),
+                "completed_steps": checkin_data.get('completed_steps'),
+                "skipped_steps": checkin_data.get('skipped_steps'),
+                "notes": checkin_data.get('notes'),
+                "mood": checkin_data.get('mood'),
+                "energy_level": checkin_data.get('energy_level')
+            }
+            
+            response = requests.post(
+                f"{self.supabase_url}/rest/v1/checkins",
+                headers=self.headers,
+                json=data
+            )
+            
+            if response.status_code not in [200, 201]:
+                raise Exception(f"Failed to save check-in: {response.text}")
+                
+        except Exception as e:
+            st.error(f"Failed to save check-in: {str(e)}")
+            raise
+    
+    def get_checkins(self, user_email: str, days: int = 30) -> List[Dict]:
+        """Get check-ins for a user"""
+        try:
+            if not self.supabase_url or not self.supabase_key:
+                raise Exception("Supabase URL or key not configured")
+            
+            response = requests.get(
+                f"{self.supabase_url}/rest/v1/checkins",
+                headers=self.headers,
+                params={
+                    "user_email": f"eq.{user_email}",
+                    "order": "created_at.desc",
+                    "limit": "1000"  # Adjust as needed
+                }
+            )
+            
+            if response.status_code == 200:
+                return response.json()
+            else:
+                raise Exception(f"Failed to get check-ins: {response.text}")
+                
+        except Exception as e:
+            st.error(f"Failed to get check-ins: {str(e)}")
+            return []
