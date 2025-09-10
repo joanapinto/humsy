@@ -4,4 +4,4 @@ python-dotenv==1.1.1
 pandas>=2.1.0
 numpy>=1.24.0,<2.0.0
 plotly==5.17.0
-psycopg2-binary==2.9.9
+requests==2.31.0

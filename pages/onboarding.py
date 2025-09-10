@@ -12,7 +12,7 @@ sys.path.insert(0, str(project_root))
 
 from data.storage import save_user_profile, load_user_profile, reset_user_profile
 from data.database import DatabaseManager
-from data.postgres_manager import PostgreSQLManager
+from data.supabase_manager import SupabaseManager
 from assistant.ai_service import AIService
 from auth import require_beta_access, get_user_email
 
@@ -66,7 +66,7 @@ st.success("🎉 **Welcome to Humsy Beta!**")
 st.info("💡 **Pro Tip:** Take your time with these questions - they help the AI provide personalized insights!")
 
 # Database status message
-if st.session_state.get("debug_messages") and any("PostgreSQL" in msg for msg in st.session_state.debug_messages):
+if st.session_state.get("debug_messages") and any("Supabase" in msg for msg in st.session_state.debug_messages):
     st.success("✅ **Database Connected:** Your plans will be saved permanently!")
 else:
     st.warning("⚠️ **Beta Notice:** Plans are currently stored temporarily. If you close this tab, your plan will be lost. We're working on permanent storage!")
@@ -75,19 +75,19 @@ else:
 existing_profile = load_user_profile()
 
 # Also check if user has an active goal (new onboarding system)
-# Try PostgreSQL first, fallback to SQLite
+# Try Supabase REST API first, fallback to SQLite
 try:
-    db = PostgreSQLManager()
+    db = SupabaseManager()
     user_email = get_user_email() or "me@example.com"
     active_goal = db.get_active_goal(user_email)
     st.session_state.debug_messages = st.session_state.get("debug_messages", [])
-    st.session_state.debug_messages.append("✅ Using PostgreSQL database")
+    st.session_state.debug_messages.append("✅ Using Supabase REST API")
 except Exception as e:
     db = DatabaseManager()
     user_email = get_user_email() or "me@example.com"
     active_goal = db.get_active_goal(user_email)
     st.session_state.debug_messages = st.session_state.get("debug_messages", [])
-    st.session_state.debug_messages.append(f"⚠️ PostgreSQL failed, using SQLite: {str(e)}")
+    st.session_state.debug_messages.append(f"⚠️ Supabase failed, using SQLite: {str(e)}")
 
 # Use active_goal data if available, otherwise fall back to existing_profile
 profile_data = active_goal if active_goal else existing_profile

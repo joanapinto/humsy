@@ -5,8 +5,8 @@ Handles all data storage and retrieval operations with Supabase PostgreSQL
 
 import os
 import json
-import psycopg2
-import psycopg2.extras
+import asyncio
+import asyncpg
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any
 import streamlit as st
@@ -29,12 +29,12 @@ class PostgreSQLManager:
         # Fallback to environment variable
         return os.getenv('DATABASE_URL', '')
     
-    def _get_connection(self):
+    async def _get_connection(self):
         """Get database connection"""
         if not self.connection_string:
             raise Exception("No database connection string found. Please configure DATABASE_URL in secrets.")
         
-        return psycopg2.connect(self.connection_string)
+        return await asyncpg.connect(self.connection_string)
     
     def init_database(self):
         """Initialize the database with all required tables"""
