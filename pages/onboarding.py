@@ -164,10 +164,22 @@ energy_time = st.selectbox(
 
 # Question 8: Free days (optional)
 st.markdown("**8. Any days you prefer to keep free?**")
+# Handle free_days data safely
+free_days_data = profile_data.get("free_days", []) if profile_data else []
+if isinstance(free_days_data, str):
+    # If it's a string, try to parse it as a list
+    try:
+        import ast
+        free_days_data = ast.literal_eval(free_days_data)
+    except:
+        free_days_data = []
+elif not isinstance(free_days_data, list):
+    free_days_data = []
+
 free_days = st.multiselect(
     "Days to avoid",
     options=["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
-    default=profile_data.get("free_days", []) if profile_data else [],
+    default=free_days_data,
     help="Select days you'd prefer not to work on this goal"
 )
 
@@ -183,10 +195,23 @@ intensity = st.selectbox(
 # Question 10: Joy sources (optional)
 st.markdown("**10. What brings you joy or gives you energy lately?**")
 joy_options = ["Friends", "Movement", "Creating", "Helping others", "Nature", "Rest", "Learning", "Music", "Other"]
+
+# Handle joy_sources data safely
+joy_sources_data = profile_data.get("joy_sources", []) if profile_data else []
+if isinstance(joy_sources_data, str):
+    # If it's a string, try to parse it as a list
+    try:
+        import ast
+        joy_sources_data = ast.literal_eval(joy_sources_data)
+    except:
+        joy_sources_data = []
+elif not isinstance(joy_sources_data, list):
+    joy_sources_data = []
+
 joy_sources = st.multiselect(
     "What energizes you?",
     options=joy_options,
-    default=joy_sources,
+    default=joy_sources_data,
     help="We'll incorporate these into your plan to keep you motivated"
 )
 
@@ -204,9 +229,23 @@ else:
 # Question 11: Energy drainers (optional)
 st.markdown("**11. What tends to bring you down or drain your energy?**")
 drainer_options = ["Overwhelm", "Lack of sleep", "Isolation", "Criticism", "Deadlines", "Perfectionism", "Other"]
+
+# Handle energy_drainers data safely
+energy_drainers_data = profile_data.get("energy_drainers", []) if profile_data else []
+if isinstance(energy_drainers_data, str):
+    # If it's a string, try to parse it as a list
+    try:
+        import ast
+        energy_drainers_data = ast.literal_eval(energy_drainers_data)
+    except:
+        energy_drainers_data = []
+elif not isinstance(energy_drainers_data, list):
+    energy_drainers_data = []
+
 energy_drainers = st.multiselect(
     "What drains your energy?",
     options=drainer_options,
+    default=energy_drainers_data,
     help="We'll help you avoid or manage these"
 )
 
