@@ -10,6 +10,7 @@ project_root = current_file.parent.parent
 sys.path.insert(0, str(project_root))
 
 from data.database import DatabaseManager
+from data.supabase_manager import SupabaseManager
 from auth import require_beta_access, get_user_email
 
 st.set_page_config(page_title="Plan", page_icon="🗺️")
@@ -44,9 +45,15 @@ require_beta_access()
 
 st.title("🗺️ Your Plan")
 
-db = DatabaseManager()
-user_email = get_user_email() or "me@example.com"
-goal = db.get_active_goal(user_email)
+# Try Supabase REST API first, fallback to SQLite
+try:
+    db = SupabaseManager()
+    user_email = get_user_email() or "me@example.com"
+    goal = db.get_active_goal(user_email)
+except Exception as e:
+    db = DatabaseManager()
+    user_email = get_user_email() or "me@example.com"
+    goal = db.get_active_goal(user_email)
 
 if not goal:
     st.info("No active goal yet. Go to Onboarding to create one.")

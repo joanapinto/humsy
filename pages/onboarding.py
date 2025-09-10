@@ -53,7 +53,7 @@ show_standard_sidebar()
 # Require beta access
 require_beta_access()
 
-st.title("🧠 Welcome to Your Humsy")
+st.title("🧠 Welcome to Humsy")
 
 
 # Beta tester welcome message
