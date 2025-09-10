@@ -600,6 +600,28 @@ class DatabaseManager:
         conn.commit()
         conn.close()
 
+    def update_goal(self, goal_id: int, data: dict):
+        """Update goal data"""
+        import sqlite3
+        conn = sqlite3.connect(self.db_path)
+        cur = conn.cursor()
+        
+        # Build update query dynamically based on provided data
+        set_clauses = []
+        values = []
+        
+        for key, value in data.items():
+            set_clauses.append(f"{key} = ?")
+            values.append(value)
+        
+        if set_clauses:
+            query = f"UPDATE goals SET {', '.join(set_clauses)} WHERE id = ?"
+            values.append(goal_id)
+            cur.execute(query, values)
+            conn.commit()
+        
+        conn.close()
+
     def get_today_candidates(self, user_email: str, date_str: str) -> list[dict]:
         # simple heuristic: pending steps due today or with suggested_day matching weekday
         import sqlite3, datetime
