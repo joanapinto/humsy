@@ -114,7 +114,8 @@ else:
                         "time": datetime.now().strftime("%H:%M")
                     }
                     # Save to persistent storage
-                    save_mood_data(new_mood)
+                    user_email = get_user_email() or "me@example.com"
+                    save_mood_data(new_mood, user_email)
                     # Update session state
                     st.session_state.mood_data.append(new_mood)
                     st.success("🎉 Mood logged successfully! 📊")
@@ -237,7 +238,8 @@ else:
                 }
                 
                 # Save to persistent storage
-                save_mood_data(new_mood)
+                user_email = get_user_email() or "me@example.com"
+                save_mood_data(new_mood, user_email)
                 # Update session state
                 st.session_state.mood_data.append(new_mood)
                 st.success("🎉 Mood and reasons logged successfully! 📊")
@@ -261,7 +263,8 @@ else:
                 latest_entry = st.session_state.mood_data[-1]
                 latest_entry['note'] = mood_note.strip()
                 # Update in persistent storage
-                save_mood_data(latest_entry)
+                user_email = get_user_email() or "me@example.com"
+                save_mood_data(latest_entry, user_email)
                 st.info("📝 Note added to your latest mood entry!")
                 st.rerun()
     

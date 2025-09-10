@@ -321,7 +321,16 @@ def main():
         col1, col2 = st.columns(2)
         
         with col1:
-            encouragement = assistant.get_daily_encouragement()
+            # Cache daily encouragement to avoid repeated AI calls
+            today = datetime.now().strftime('%Y-%m-%d')
+            if ('daily_encouragement' not in st.session_state or 
+                st.session_state.get('encouragement_date') != today):
+                encouragement = assistant.get_daily_encouragement()
+                st.session_state.daily_encouragement = encouragement
+                st.session_state.encouragement_date = today
+            else:
+                encouragement = st.session_state.daily_encouragement
+                
             if encouragement:
                 st.markdown("💬 **Encouragement:**")
                 st.write(encouragement)

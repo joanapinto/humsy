@@ -65,7 +65,13 @@ def generate_checkin_analysis(user_profile, checkin_data, mood_data, time_period
             user_situation = active_goal.get('why_matters', 'Not specified')
             
             # Get weekly progress context
-            db = DatabaseManager()
+            # Use the same database connection as the main page
+            try:
+                from data.supabase_manager import SupabaseManager
+                db = SupabaseManager()
+            except Exception:
+                from data.database import DatabaseManager
+                db = DatabaseManager()
             milestones, steps = db.list_plan(active_goal['id'])
             
             # Calculate current week's progress
@@ -172,9 +178,17 @@ st.title("📝 Daily Check-in")
 user_profile = load_user_profile()
 
 # Also check if user has an active goal (new onboarding system)
-db = DatabaseManager()
-user_email = get_user_email() or "me@example.com"
-active_goal = db.get_active_goal(user_email)
+# Try Supabase REST API first, fallback to SQLite
+try:
+    from data.supabase_manager import SupabaseManager
+    db = SupabaseManager()
+    user_email = get_user_email() or "me@example.com"
+    active_goal = db.get_active_goal(user_email)
+except Exception as e:
+    from data.database import DatabaseManager
+    db = DatabaseManager()
+    user_email = get_user_email() or "me@example.com"
+    active_goal = db.get_active_goal(user_email)
 
 if not user_profile and not active_goal:
     st.warning("Please complete onboarding first!")
@@ -431,8 +445,15 @@ else:
     if previous_checkin:
         st.info(f"📝 **Previous check-in today:** {previous_checkin['time_period'].title()} at {datetime.fromisoformat(previous_checkin['timestamp']).strftime('%I:%M %p')}")
     
-    # Time-aware encouragement
-    encouragement = assistant.get_daily_encouragement()
+    # Time-aware encouragement (cached to avoid repeated AI calls)
+    today = datetime.now().strftime('%Y-%m-%d')
+    if ('daily_encouragement' not in st.session_state or 
+        st.session_state.get('encouragement_date') != today):
+        encouragement = assistant.get_daily_encouragement()
+        st.session_state.daily_encouragement = encouragement
+        st.session_state.encouragement_date = today
+    else:
+        encouragement = st.session_state.daily_encouragement
     st.success(encouragement)
     
     # Simple form without progress tracking
@@ -538,7 +559,8 @@ else:
                     "checkin_hour": current_hour
                 }
                 # Save the check-in data to persistent storage
-                save_checkin_data(checkin_data)
+                user_email = get_user_email() or "me@example.com"
+                save_checkin_data(checkin_data, user_email)
                 st.success("✅ Morning check-in saved successfully!")
                 
                 # After saving today's check-in, compute plan alignment:
@@ -688,7 +710,8 @@ else:
                     # Save task plan to user data
                     checkin_data['task_plan'] = task_plan
                     checkin_data['task_completion'] = task_completion
-                    save_checkin_data(checkin_data)
+                    user_email = get_user_email() or "me@example.com"
+                save_checkin_data(checkin_data, user_email)
         
         # Afternoon flow (12 PM - 6 PM)
         elif 12 <= current_hour < 18:
@@ -799,7 +822,8 @@ else:
                     "checkin_hour": current_hour
                 }
                 # Save the check-in data to persistent storage
-                save_checkin_data(checkin_data)
+                user_email = get_user_email() or "me@example.com"
+                save_checkin_data(checkin_data, user_email)
                 st.success("✅ Afternoon check-in saved successfully!")
                 
                 # After saving today's check-in, compute plan alignment:
@@ -938,7 +962,8 @@ else:
                     # Save task plan to user data
                     checkin_data['task_plan'] = task_plan
                     checkin_data['task_completion'] = task_completion
-                    save_checkin_data(checkin_data)
+                    user_email = get_user_email() or "me@example.com"
+                save_checkin_data(checkin_data, user_email)
         
         # Evening flow (6 PM - 5 AM)
         else:
@@ -1050,7 +1075,8 @@ else:
                     "checkin_hour": current_hour
                 }
                 # Save the check-in data to persistent storage
-                save_checkin_data(checkin_data)
+                user_email = get_user_email() or "me@example.com"
+                save_checkin_data(checkin_data, user_email)
                 st.success("✅ Evening check-in saved successfully!")
                 
                 # After saving today's check-in, compute plan alignment:
@@ -1189,7 +1215,8 @@ else:
                     # Save task plan to user data
                     checkin_data['task_plan'] = task_plan
                     checkin_data['task_completion'] = task_completion
-                    save_checkin_data(checkin_data)
+                    user_email = get_user_email() or "me@example.com"
+                save_checkin_data(checkin_data, user_email)
 
 # Handle pending skips (outside of forms)
 if 'pending_skips' in st.session_state:
