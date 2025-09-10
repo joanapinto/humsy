@@ -12,6 +12,7 @@ sys.path.insert(0, str(project_root))
 
 from data.storage import save_user_profile, load_user_profile, reset_user_profile
 from data.database import DatabaseManager
+from data.postgres_manager import PostgreSQLManager
 from assistant.ai_service import AIService
 from auth import require_beta_access, get_user_email
 
@@ -54,8 +55,8 @@ require_beta_access()
 
 st.title("🧠 Welcome to Your Humsy")
 
-# Debug section - show persistent debug messages
-if st.session_state.get("debug_messages"):
+# Debug section - show persistent debug messages (can be removed in production)
+if st.session_state.get("debug_messages") and st.checkbox("Show Debug Info", value=False):
     with st.expander("🔍 Debug Information", expanded=True):
         for msg in st.session_state.debug_messages:
             st.write(msg)
@@ -64,13 +65,29 @@ if st.session_state.get("debug_messages"):
 st.success("🎉 **Welcome to Humsy Beta!**")
 st.info("💡 **Pro Tip:** Take your time with these questions - they help the AI provide personalized insights!")
 
+# Database status message
+if st.session_state.get("debug_messages") and any("PostgreSQL" in msg for msg in st.session_state.debug_messages):
+    st.success("✅ **Database Connected:** Your plans will be saved permanently!")
+else:
+    st.warning("⚠️ **Beta Notice:** Plans are currently stored temporarily. If you close this tab, your plan will be lost. We're working on permanent storage!")
+
 # Load existing profile if available
 existing_profile = load_user_profile()
 
 # Also check if user has an active goal (new onboarding system)
-db = DatabaseManager()
-user_email = get_user_email() or "me@example.com"
-active_goal = db.get_active_goal(user_email)
+# Try PostgreSQL first, fallback to SQLite
+try:
+    db = PostgreSQLManager()
+    user_email = get_user_email() or "me@example.com"
+    active_goal = db.get_active_goal(user_email)
+    st.session_state.debug_messages = st.session_state.get("debug_messages", [])
+    st.session_state.debug_messages.append("✅ Using PostgreSQL database")
+except Exception as e:
+    db = DatabaseManager()
+    user_email = get_user_email() or "me@example.com"
+    active_goal = db.get_active_goal(user_email)
+    st.session_state.debug_messages = st.session_state.get("debug_messages", [])
+    st.session_state.debug_messages.append(f"⚠️ PostgreSQL failed, using SQLite: {str(e)}")
 
 # Use active_goal data if available, otherwise fall back to existing_profile
 profile_data = active_goal if active_goal else existing_profile
@@ -312,8 +329,7 @@ st.markdown("---")
 if goal_title and success_metric and starting_point and weekly_time:
     st.write("### 🚀 Ready to Generate Your Plan?")
     st.write("All required fields are filled. Click below to generate your personalized plan.")
-    st.write("✅ **NEW VERSION DEPLOYED** - Clean interface without debug messages")
-    st.write(f"🔍 Button condition check - goal_title: {bool(goal_title)}, success_metric: {bool(success_metric)}, starting_point: {bool(starting_point)}, weekly_time: {bool(weekly_time)}")
+    st.write("✅ **Ready to generate your personalized plan!**")
     
     if st.button("🚀 Generate Plan", type="primary", use_container_width=True):
         # Store debug info in session state so it persists
@@ -348,14 +364,20 @@ if goal_title and success_metric and starting_point and weekly_time:
         
         st.session_state.debug_messages.append(f"🔍 Goal data prepared: {goal_data}")
         
-        # Skip database entirely for now - use session state directly
-        st.session_state.debug_messages.append("🔄 **Streamlit Cloud Mode**: Skipping database, using session state directly")
-        
-        # Use session state instead of database
-        goal_id = f"temp_{user_email}_{datetime.now().timestamp()}"
-        st.session_state.temp_goal_id = goal_id
-        st.session_state.temp_goal_data = goal_data
-        st.session_state.debug_messages.append(f"🔍 Using temporary goal ID: {goal_id}")
+        # Try to use database, fallback to session state if it fails
+        try:
+            st.session_state.debug_messages.append("🔍 Creating goal in database...")
+            goal_id = db.create_goal(user_email, goal_data)
+            st.session_state.debug_messages.append(f"✅ Goal created with ID: {goal_id}")
+        except Exception as e:
+            st.session_state.debug_messages.append(f"⚠️ Database failed: {str(e)}")
+            st.session_state.debug_messages.append("🔄 Using session state fallback")
+            
+            # Fallback to session state
+            goal_id = f"temp_{user_email}_{datetime.now().timestamp()}"
+            st.session_state.temp_goal_id = goal_id
+            st.session_state.temp_goal_data = goal_data
+            st.session_state.debug_messages.append(f"🔍 Using temporary goal ID: {goal_id}")
         
         # Generate plan
         ai = AIService()
@@ -391,11 +413,18 @@ if goal_title and success_metric and starting_point and weekly_time:
                 st.session_state.debug_messages.append(f"🔍 Plan content: {plan}")
                 
                 if plan and plan.get("milestones"):
-                    st.session_state.debug_messages.append("🔍 Saving milestones and steps to session state...")
-                    # Store in session state directly (skip database)
-                    st.session_state.temp_milestones = plan.get("milestones", [])
-                    st.session_state.temp_steps = plan.get("steps", [])
-                    st.session_state.debug_messages.append("🔍 Milestones and steps saved to session state")
+                    st.session_state.debug_messages.append("🔍 Saving milestones and steps...")
+                    try:
+                        # Try to save to database
+                        db.save_milestones(goal_id, plan.get("milestones", []))
+                        db.save_steps(goal_id, plan.get("steps", []))
+                        st.session_state.debug_messages.append("✅ Milestones and steps saved to database")
+                    except Exception as e:
+                        st.session_state.debug_messages.append(f"⚠️ Database save failed: {str(e)}")
+                        # Fallback to session state
+                        st.session_state.temp_milestones = plan.get("milestones", [])
+                        st.session_state.temp_steps = plan.get("steps", [])
+                        st.session_state.debug_messages.append("🔍 Milestones and steps saved to session state")
                     
                     # Store in session state
                     st.session_state.debug_messages.append("🔍 Setting session state...")
