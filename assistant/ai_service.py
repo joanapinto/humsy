@@ -22,12 +22,28 @@ class AIService:
     
     def __init__(self):
         # Initialize OpenAI client
-        api_key = os.getenv('OPENAI_API_KEY')
+        # Try Streamlit secrets first (for Streamlit Cloud), then environment variables
+        api_key = None
+        try:
+            api_key = st.secrets.get("openai_api_key", "")
+        except:
+            pass
+        
+        if not api_key:
+            api_key = os.getenv('OPENAI_API_KEY')
+        
         if not api_key:
             st.warning("⚠️ OpenAI API key not found. AI features will be disabled.")
+            st.info("💡 **Setup Instructions:**\n"
+                   "1. Add your OpenAI API key to Streamlit secrets as `openai_api_key`\n"
+                   "2. Or set the `OPENAI_API_KEY` environment variable\n"
+                   "3. Restart the app after adding the key")
             self.client = None
         else:
             self.client = openai.OpenAI(api_key=api_key)
+            # Show a subtle success message in development
+            if st.secrets.get("show_debug_info", False):
+                st.success("✅ OpenAI API key loaded successfully")
         
         # Initialize usage limiter
         self.usage_limiter = UsageLimiter()
@@ -682,8 +698,12 @@ IMPORTANT: Make each task specific to their stated focus. If they want to "work 
             end = txt.rfind("}")
             if start != -1 and end != -1:
                 return json.loads(txt[start:end+1])
-        except Exception:
-            pass
+        except Exception as e:
+            # Show error in development/debug mode
+            if st.secrets.get("show_debug_info", False):
+                st.error(f"❌ AI API Error: {str(e)}")
+            else:
+                st.error("❌ AI service error. Please check your API key and try again.")
         return {}
 
     # ---- Feature flags/limits already exist; reuse your can_use_feature if present ----

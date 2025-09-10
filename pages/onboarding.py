@@ -297,7 +297,14 @@ if goal_title and success_metric and starting_point and weekly_time:
         }
         
         with st.spinner("🤖 Generating your personalized plan..."):
-            plan = ai.generate_goal_plan(plan_data, user_email)
+            try:
+                plan = ai.generate_goal_plan(plan_data, user_email)
+                if not plan or not plan.get("milestones"):
+                    st.error("❌ Failed to generate plan. Please check your API key and try again.")
+                    st.stop()
+            except Exception as e:
+                st.error(f"❌ Error generating plan: {str(e)}")
+                st.stop()
         
         db.save_milestones(goal_id, plan.get("milestones", []))
         db.save_steps(goal_id, plan.get("steps", []))

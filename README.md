@@ -305,7 +305,9 @@ focus-companion/
 ## ⚙️ Configuration
 
 ### **🔐 Streamlit Secrets**
-Humsy uses Streamlit secrets for secure configuration management. Create a `.streamlit/secrets.toml` file in your project root:
+Humsy uses Streamlit secrets for secure configuration management. 
+
+**For Local Development:** Create a `.streamlit/secrets.toml` file in your project root:
 
 ```toml
 # Allowed email addresses for beta access
@@ -317,9 +319,23 @@ allowed_emails = [
 # Admin email (optional - defaults to first email in allowed_emails)
 admin_email = "admin@example.com"
 
-# OpenAI API Key (optional - can also use environment variables)
+# OpenAI API Key (required for AI features)
 openai_api_key = "your-openai-api-key-here"
+
+# Debug mode (optional - shows detailed error messages)
+show_debug_info = true
 ```
+
+**For Streamlit Cloud Deployment:**
+1. Go to your app's settings in Streamlit Cloud
+2. Add the secrets in the "Secrets" section:
+   ```toml
+   allowed_emails = ["your-email@example.com", "another@example.com"]
+   admin_email = "admin@example.com"
+   openai_api_key = "sk-your-openai-api-key-here"
+   show_debug_info = true
+   ```
+3. Deploy your app
 
 ### **📧 Beta Access Management**
 - **Add users**: Add email addresses to the `allowed_emails` list in `secrets.toml`
