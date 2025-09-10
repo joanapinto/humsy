@@ -294,9 +294,24 @@ reminder_preference = st.selectbox(
 
 # Generate Plan Button
 st.markdown("---")
+st.write("🔍 **Debug: Checking form completion...**")
+st.write(f"- goal_title: {goal_title}")
+st.write(f"- success_metric: {success_metric}")
+st.write(f"- starting_point: {starting_point}")
+st.write(f"- weekly_time: {weekly_time}")
+st.write(f"- All required fields filled: {bool(goal_title and success_metric and starting_point and weekly_time)}")
+
 if goal_title and success_metric and starting_point and weekly_time:
+    st.write("🔍 **Debug: Button should be visible**")
+    st.write(f"- Goal title: {goal_title}")
+    st.write(f"- Success metric: {success_metric}")
+    st.write(f"- Starting point: {starting_point}")
+    st.write(f"- Weekly time: {weekly_time}")
+    
     if st.button("🚀 Generate Plan", type="primary", use_container_width=True):
+        st.write("🔍 **Debug: Button was clicked!**")
         user_email = get_user_email() or "me@example.com"
+        st.write(f"- User email: {user_email}")
         db = DatabaseManager()
         goal_id = db.create_goal(user_email, {
             "title": goal_title,
@@ -316,9 +331,12 @@ if goal_title and success_metric and starting_point and weekly_time:
             "reminder_preference": reminder_preference,
             "auto_adapt": True
         })
+        st.write(f"🔍 **Debug: Goal created with ID: {goal_id}**")
         
         # Generate plan
+        st.write("🔍 **Debug: Creating AI service...**")
         ai = AIService()
+        st.write("🔍 **Debug: AI service created, starting plan generation...**")
         plan_data = {
             "title": goal_title,
             "why_matters": why_matters,
