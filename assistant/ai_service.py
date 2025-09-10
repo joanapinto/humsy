@@ -680,8 +680,9 @@ IMPORTANT: Make each task specific to their stated focus. If they want to "work 
                     {"role": "system", "content": "You are a helpful assistant that returns only valid JSON."},
                     {"role": "user", "content": prompt}
                 ],
-                max_tokens=1000,
-                temperature=0.3
+                max_tokens=4000,  # Increased for comprehensive plans
+                temperature=0.3,
+                timeout=30  # Add timeout
             )
             txt = response.choices[0].message.content.strip().strip("`")
             # try to extract JSON if model wrapped in code fences

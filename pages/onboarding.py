@@ -385,8 +385,17 @@ if goal_title and success_metric and starting_point and weekly_time:
         with st.spinner("🤖 Generating your personalized plan..."):
             try:
                 st.session_state.debug_messages.append("🔍 Calling AI service...")
+                st.session_state.debug_messages.append(f"🔍 Plan data being sent: {plan_data}")
+                
+                # Check if AI service is available
+                if not ai.is_available():
+                    st.session_state.debug_messages.append("❌ AI service not available - no API key")
+                    raise Exception("AI service not available")
+                
+                st.session_state.debug_messages.append("🔍 AI service is available, making API call...")
                 plan = ai.generate_goal_plan(plan_data, user_email)
                 st.session_state.debug_messages.append(f"🔍 Plan received: {bool(plan)}")
+                st.session_state.debug_messages.append(f"🔍 Plan content: {plan}")
                 
                 if plan and plan.get("milestones"):
                     st.session_state.debug_messages.append("🔍 Saving milestones and steps...")
