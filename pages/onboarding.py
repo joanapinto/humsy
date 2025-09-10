@@ -367,10 +367,14 @@ if goal_title and success_metric and starting_point and weekly_time:
         # Try to use database, fallback to session state if it fails
         try:
             st.session_state.debug_messages.append("🔍 Creating goal in database...")
+            st.session_state.debug_messages.append(f"🔍 Database type: {type(db)}")
+            st.session_state.debug_messages.append(f"🔍 Database has create_goal: {hasattr(db, 'create_goal')}")
+            
             goal_id = db.create_goal(user_email, goal_data)
             st.session_state.debug_messages.append(f"✅ Goal created with ID: {goal_id}")
         except Exception as e:
             st.session_state.debug_messages.append(f"⚠️ Database failed: {str(e)}")
+            st.session_state.debug_messages.append(f"🔍 Exception type: {type(e)}")
             st.session_state.debug_messages.append("🔄 Using session state fallback")
             
             # Fallback to session state
