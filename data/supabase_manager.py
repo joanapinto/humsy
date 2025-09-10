@@ -217,7 +217,7 @@ class SupabaseManager:
                 headers=self.headers,
                 params={
                     "goal_id": f"eq.{goal_id}",
-                    "order": "target_date.asc"
+                    "order": "seq.asc"
                 }
             )
             
