@@ -306,10 +306,14 @@ if goal_title and success_metric and starting_point and weekly_time:
     st.write("### 🚀 Ready to Generate Your Plan?")
     st.write("All required fields are filled. Click below to generate your personalized plan.")
     st.write("✅ **NEW VERSION DEPLOYED** - Clean interface without debug messages")
+    st.write(f"🔍 Button condition check - goal_title: {bool(goal_title)}, success_metric: {bool(success_metric)}, starting_point: {bool(starting_point)}, weekly_time: {bool(weekly_time)}")
     
     if st.button("🚀 Generate Plan", type="primary", use_container_width=True):
+        st.write("🔍 Button clicked! Starting plan generation...")
         user_email = get_user_email() or "me@example.com"
+        st.write(f"🔍 User email: {user_email}")
         db = DatabaseManager()
+        st.write("🔍 Database manager created")
         
         goal_id = db.create_goal(user_email, {
             "title": goal_title,
