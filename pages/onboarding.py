@@ -308,30 +308,38 @@ if goal_title and success_metric and starting_point and weekly_time:
     st.write(f"- Starting point: {starting_point}")
     st.write(f"- Weekly time: {weekly_time}")
     
-    if st.button("🚀 Generate Plan", type="primary", use_container_width=True):
-        st.write("🔍 **Debug: Button was clicked!**")
-        user_email = get_user_email() or "me@example.com"
-        st.write(f"- User email: {user_email}")
-        db = DatabaseManager()
-        goal_id = db.create_goal(user_email, {
-            "title": goal_title,
-            "why_matters": why_matters,
-            "deadline": str(goal_deadline) if goal_deadline else None,
-            "success_metric": success_metric,
-            "starting_point": starting_point,
-            "weekly_time": weekly_time,
-            "energy_time": energy_time,
-            "free_days": ",".join(free_days) if free_days else "",
-            "intensity": intensity,
-            "joy_sources": joy_sources,
-            "energy_drainers": energy_drainers,
-            "therapy_coaching": therapy_coaching,
-            "obstacles": obstacles,
-            "resources": resources,
-            "reminder_preference": reminder_preference,
-            "auto_adapt": True
-        })
-        st.write(f"🔍 **Debug: Goal created with ID: {goal_id}**")
+    # Try different button approaches
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("🚀 Generate Plan", type="primary", use_container_width=True):
+            st.write("🔍 **Debug: Button was clicked!**")
+            user_email = get_user_email() or "me@example.com"
+            st.write(f"- User email: {user_email}")
+            db = DatabaseManager()
+            goal_id = db.create_goal(user_email, {
+                "title": goal_title,
+                "why_matters": why_matters,
+                "deadline": str(goal_deadline) if goal_deadline else None,
+                "success_metric": success_metric,
+                "starting_point": starting_point,
+                "weekly_time": weekly_time,
+                "energy_time": energy_time,
+                "free_days": ",".join(free_days) if free_days else "",
+                "intensity": intensity,
+                "joy_sources": joy_sources,
+                "energy_drainers": energy_drainers,
+                "therapy_coaching": therapy_coaching,
+                "obstacles": obstacles,
+                "resources": resources,
+                "reminder_preference": reminder_preference,
+                "auto_adapt": True
+            })
+            st.write(f"🔍 **Debug: Goal created with ID: {goal_id}**")
+    
+    with col2:
+        if st.button("🔧 Test Button", use_container_width=True):
+            st.write("🔍 **Debug: Test button was clicked!**")
+            st.success("Test button works!")
         
         # Generate plan
         st.write("🔍 **Debug: Creating AI service...**")
