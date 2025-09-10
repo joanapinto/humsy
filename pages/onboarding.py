@@ -344,8 +344,8 @@ if goal_title and success_metric and starting_point and weekly_time:
         user_email = get_user_email() or "me@example.com"
         st.session_state.debug_messages.append(f"🔍 User email: {user_email}")
         
-        db = DatabaseManager()
-        st.session_state.debug_messages.append("🔍 Database manager created")
+        # Use the same database manager that was initialized at the top of the page
+        st.session_state.debug_messages.append("🔍 Using existing database manager")
         
         st.session_state.debug_messages.append("🔍 About to create goal in database...")
         goal_data = {
