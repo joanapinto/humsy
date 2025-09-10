@@ -304,16 +304,29 @@ st.write(f"🔍 Debug: Button condition check - goal_title: {bool(goal_title)}, 
 
 if goal_title and success_metric and starting_point and weekly_time:
     st.write("🔍 Debug: All conditions met, showing form")
+    st.write(f"🔍 Debug: goal_title='{goal_title}', success_metric='{success_metric}', starting_point='{starting_point}', weekly_time='{weekly_time}'")
     
     # Use a form instead of direct button - more reliable on Streamlit Cloud
     with st.form("generate_plan_form"):
+        st.write("🔍 Debug: Inside form context")
         st.write("### 🚀 Ready to Generate Your Plan?")
         st.write("All required fields are filled. Click below to generate your personalized plan.")
         
         submitted = st.form_submit_button("🚀 Generate Plan", type="primary", use_container_width=True)
         
+        st.write(f"🔍 Debug: Form submitted = {submitted}")
+        
         if submitted:
             st.write("🔍 Debug: Form submitted! Starting plan generation...")
+            
+            # Test secrets availability
+            try:
+                api_key = st.secrets.get("openai_api_key", "")
+                st.write(f"🔍 Debug: API key available = {bool(api_key)}")
+                st.write(f"🔍 Debug: API key length = {len(api_key) if api_key else 0}")
+            except Exception as secrets_error:
+                st.write(f"🔍 Debug: Secrets error: {str(secrets_error)}")
+            
             user_email = get_user_email() or "me@example.com"
             st.write(f"🔍 Debug: User email: {user_email}")
             
@@ -342,8 +355,14 @@ if goal_title and success_metric and starting_point and weekly_time:
                 st.write(f"🔍 Debug: Goal created with ID: {goal_id}")
                 
                 # Generate plan
-                ai = AIService()
-                st.write("🔍 Debug: AI service created")
+                try:
+                    ai = AIService()
+                    st.write("🔍 Debug: AI service created successfully")
+                    st.write(f"🔍 Debug: AI service client = {ai.client is not None}")
+                except Exception as ai_error:
+                    st.error(f"❌ Error creating AI service: {str(ai_error)}")
+                    st.write(f"🔍 Debug: AI service error details: {type(ai_error).__name__}: {str(ai_error)}")
+                    return
                 plan_data = {
                     "title": goal_title,
                     "why_matters": why_matters,
