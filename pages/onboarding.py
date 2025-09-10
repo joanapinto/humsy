@@ -300,142 +300,74 @@ reminder_preference = st.selectbox(
 
 # Generate Plan Button
 st.markdown("---")
-st.write(f"🔍 Debug: Button condition check - goal_title: {bool(goal_title)}, success_metric: {bool(success_metric)}, starting_point: {bool(starting_point)}, weekly_time: {bool(weekly_time)}")
 
 if goal_title and success_metric and starting_point and weekly_time:
-    st.write("🔍 Debug: All conditions met, showing button")
-    st.write(f"🔍 Debug: goal_title='{goal_title}', success_metric='{success_metric}', starting_point='{starting_point}', weekly_time='{weekly_time}'")
+    st.write("### 🚀 Ready to Generate Your Plan?")
+    st.write("All required fields are filled. Click below to generate your personalized plan.")
     
-    # Check if button was clicked in previous run
-    if st.session_state.get("button_clicked", False):
-        st.write("🔍 Debug: Button was clicked, processing...")
-        
-        # Reset the button state
-        st.session_state.button_clicked = False
-        
-        if True:  # This will always execute when button was clicked
-            st.write("🔍 Debug: Processing plan generation...")
-        
-        # Test secrets availability
-        try:
-            api_key = st.secrets.get("openai_api_key", "")
-            st.write(f"🔍 Debug: API key available = {bool(api_key)}")
-            st.write(f"🔍 Debug: API key length = {len(api_key) if api_key else 0}")
-        except Exception as secrets_error:
-            st.write(f"🔍 Debug: Secrets error: {str(secrets_error)}")
-        
+    if st.button("🚀 Generate Plan", type="primary", use_container_width=True):
         user_email = get_user_email() or "me@example.com"
-        st.write(f"🔍 Debug: User email: {user_email}")
+        db = DatabaseManager()
         
-        try:
-            db = DatabaseManager()
-            st.write("🔍 Debug: Database manager created")
-            
-            goal_id = db.create_goal(user_email, {
-                "title": goal_title,
-                "why_matters": why_matters,
-                "deadline": str(goal_deadline) if goal_deadline else None,
-                "success_metric": success_metric,
-                "starting_point": starting_point,
-                "weekly_time": weekly_time,
-                "energy_time": energy_time,
-                "free_days": ",".join(free_days) if free_days else "",
-                "intensity": intensity,
-                "joy_sources": joy_sources,
-                "energy_drainers": energy_drainers,
-                "therapy_coaching": therapy_coaching,
-                "obstacles": obstacles,
-                "resources": resources,
-                "reminder_preference": reminder_preference,
-                "auto_adapt": True
-            })
-            st.write(f"🔍 Debug: Goal created with ID: {goal_id}")
-            
-            # Generate plan
-            try:
-                ai = AIService()
-                st.write("🔍 Debug: AI service created successfully")
-                st.write(f"🔍 Debug: AI service client = {ai.client is not None}")
-            except Exception as ai_error:
-                st.error(f"❌ Error creating AI service: {str(ai_error)}")
-                st.write(f"🔍 Debug: AI service error details: {type(ai_error).__name__}: {str(ai_error)}")
-                st.stop()
-            
-            plan_data = {
-                "title": goal_title,
-                "why_matters": why_matters,
-                "deadline": str(goal_deadline) if goal_deadline else None,
-                "success_metric": success_metric,
-                "starting_point": starting_point,
-                "weekly_time": weekly_time,
-                "energy_time": energy_time,
-                "free_days": free_days,
-                "intensity": intensity,
-                "joy_sources": joy_sources,
-                "energy_drainers": energy_drainers,
-                "obstacles": obstacles,
-                "resources": resources
-            }
-            
-            with st.spinner("🤖 Generating your personalized plan..."):
-                try:
-                    plan = ai.generate_goal_plan(plan_data, user_email)
-                    st.write("🔍 Debug: Plan generation completed")
-                    st.write(f"🔍 Debug: Plan keys: {list(plan.keys()) if plan else 'None'}")
-                    st.write(f"🔍 Debug: Milestones count: {len(plan.get('milestones', [])) if plan else 0}")
-                    st.write(f"🔍 Debug: Steps count: {len(plan.get('steps', [])) if plan else 0}")
-                    
-                    if not plan or not plan.get("milestones"):
-                        st.error("❌ Failed to generate plan. Please check your API key and try again.")
-                        st.write(f"🔍 Debug: Plan is None or has no milestones")
-                    else:
-                        db.save_milestones(goal_id, plan.get("milestones", []))
-                        db.save_steps(goal_id, plan.get("steps", []))
-                        
-                        # Store in session state to persist across reruns
-                        st.session_state.plan_generated = True
-                        st.session_state.generated_plan = plan
-                        st.session_state.goal_id = goal_id
-                        
-                        st.write("🔍 Debug: Session state set")
-                        st.write(f"🔍 Debug: plan_generated = {st.session_state.get('plan_generated')}")
-                        st.write(f"🔍 Debug: goal_id = {st.session_state.get('goal_id')}")
-                        
-                        st.success("🎉 Plan generated successfully!")
-                        st.rerun()
-                        
-                except Exception as e:
-                    st.error(f"❌ Error generating plan: {str(e)}")
-                    st.write(f"🔍 Debug: Exception details: {type(e).__name__}: {str(e)}")
-                    
-        except Exception as e:
-            st.error(f"❌ Error in plan generation process: {str(e)}")
-            st.write(f"🔍 Debug: Exception details: {type(e).__name__}: {str(e)}")
-    
-    # Show the button if not processing
-    if not st.session_state.get("button_clicked", False):
-        st.write("### 🚀 Ready to Generate Your Plan?")
-        st.write("All required fields are filled. Click below to generate your personalized plan.")
+        goal_id = db.create_goal(user_email, {
+            "title": goal_title,
+            "why_matters": why_matters,
+            "deadline": str(goal_deadline) if goal_deadline else None,
+            "success_metric": success_metric,
+            "starting_point": starting_point,
+            "weekly_time": weekly_time,
+            "energy_time": energy_time,
+            "free_days": ",".join(free_days) if free_days else "",
+            "intensity": intensity,
+            "joy_sources": joy_sources,
+            "energy_drainers": energy_drainers,
+            "therapy_coaching": therapy_coaching,
+            "obstacles": obstacles,
+            "resources": resources,
+            "reminder_preference": reminder_preference,
+            "auto_adapt": True
+        })
         
-        # Use a simple button with a unique key
-        if st.button("🚀 Generate Plan", type="primary", use_container_width=True, key="generate_plan_btn"):
-            st.write("🔍 Debug: Button clicked! Starting plan generation...")
+        # Generate plan
+        ai = AIService()
+        plan_data = {
+            "title": goal_title,
+            "why_matters": why_matters,
+            "deadline": str(goal_deadline) if goal_deadline else None,
+            "success_metric": success_metric,
+            "starting_point": starting_point,
+            "weekly_time": weekly_time,
+            "energy_time": energy_time,
+            "free_days": free_days,
+            "intensity": intensity,
+            "joy_sources": joy_sources,
+            "energy_drainers": energy_drainers,
+            "obstacles": obstacles,
+            "resources": resources
+        }
+        
+        with st.spinner("🤖 Generating your personalized plan..."):
+            plan = ai.generate_goal_plan(plan_data, user_email)
             
-            # Store the button click in session state to persist across reruns
-            st.session_state.button_clicked = True
-            st.rerun()
+            if plan and plan.get("milestones"):
+                db.save_milestones(goal_id, plan.get("milestones", []))
+                db.save_steps(goal_id, plan.get("steps", []))
+                
+                # Store in session state
+                st.session_state.plan_generated = True
+                st.session_state.generated_plan = plan
+                st.session_state.goal_id = goal_id
+                
+                st.success("🎉 Plan generated successfully!")
+                st.rerun()
+            else:
+                st.error("❌ Failed to generate plan. Please try again.")
 else:
-    st.write("🔍 Debug: Button condition not met - button not shown")
-
-# Show plan if it was generated
-st.write(f"🔍 Debug: Checking session state - plan_generated = {st.session_state.get('plan_generated', False)}")
+    st.info("👆 Please fill in all mandatory fields (marked with *) to generate your personalized plan.")
 
 if st.session_state.get("plan_generated", False):
     plan = st.session_state.get("generated_plan", {})
     goal_id = st.session_state.get("goal_id")
-    
-    st.write("🔍 Debug: Plan display section reached")
-    st.write(f"🔍 Debug: Plan data: {list(plan.keys()) if plan else 'None'}")
     
     # Display the generated plan
     st.subheader("📋 Your Generated Plan")
