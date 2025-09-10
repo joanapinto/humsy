@@ -307,35 +307,55 @@ def main():
         ### 🚀 **Beta Tester Guide**
         
         **🎯 Quick Start:**
-        1. **Complete your onboarding** - Set your goals and preferences first!
-        2. **Start with a time-aware check-in** - Morning, afternoon, or evening based on current time
-        3. **Track your mood** - Build patterns and insights
-        4. **Try the AI features** - Personalized analysis and tips
-        5. **Explore weekly reflections** - Learn from your patterns
+        1. **Complete comprehensive onboarding** - Set your main goal and preferences first!
+        2. **Generate your personalized plan** - AI creates detailed milestones and action steps
+        3. **Start with daily check-ins** - Morning, afternoon, or evening based on current time
+        4. **Track your mood** - Build patterns and insights with enhanced mood tracking
+        5. **Follow your weekly schedule** - See your plan organized by days of the week
+        6. **Try the AI features** - Personalized analysis and smart task planning
         
         **💡 Pro Tips:**
         - **Be consistent** - Daily check-ins build the most valuable insights
-        - **Use the AI features** - They get smarter with your data
+        - **Use the AI features** - They get smarter with your data and goals
         - **Don't worry about perfection** - Just log how you're feeling
         - **Try different times** - Morning, afternoon, and evening check-ins
+        - **Review your plan regularly** - Your goals and milestones are always accessible
+        - **Use the mood tracker** - Available from any page via the sidebar
+        
+        **🎯 Goal Planning Features:**
+        - **Comprehensive onboarding** - 15 questions to understand your goals and preferences
+        - **AI-powered plan generation** - Detailed milestones and actionable steps
+        - **Smart scheduling** - Steps scheduled based on your energy patterns
+        - **Weekly schedule view** - See your plan organized by days
+        - **Plan regeneration** - Get new plans as your goals evolve
+        - **Progress tracking** - Visual progress through milestones and steps
         
         **🤖 AI Features:**
-        - **Personalized greetings** - AI that knows your patterns
-        - **Smart task planning** - Based on your energy and goals
+        - **Personalized greetings** - AI that knows your patterns and goals
+        - **Smart task planning** - Based on your energy, mood, and goals
+        - **Goal-aligned insights** - Analysis tied to your main objectives
         - **Usage limits** - 20 AI calls per day, 400 per month
         - **Graceful fallback** - Works perfectly even without AI
+        
+        **🗄️ Data & Storage:**
+        - **Cloud persistence** - Your data is saved permanently in the cloud
+        - **Automatic backup** - Local fallback ensures no data loss
+        - **Cross-device access** - Your data follows you everywhere
+        - **Privacy protected** - Your data is secure and private
         
         **⚠️ Beta Expectations:**
         - This is a **beta version** - some things might change
         - **AI features** have usage limits to control costs
-        - **Data is saved locally** - your privacy is protected
+        - **Data is saved in the cloud** - your privacy is protected
         - **Updates** will add new features based on your feedback
+        - **Some features** may be refined based on testing
         
         **🎁 Beta Perks:**
-        - **Early access** to new features
-        - **Direct influence** on development
-        - **Priority support** for issues
+        - **Early access** to new features and AI capabilities
+        - **Direct influence** on development priorities
+        - **Priority support** for issues and questions
         - **Exclusive insights** into the development process
+        - **Free access** to premium features during beta
         """)
 
     # Reset Profile Section

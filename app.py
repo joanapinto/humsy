@@ -121,12 +121,13 @@ def main():
                 You're among the first to try Humsy! Here's how to get the most value:
                 
                 **🎯 Quick Start:**
-                1. **Complete your onboarding** - Set your goals and preferences first!
-                2. **Start with a time-aware check-in** - Morning, afternoon, or evening based on current time
-                3. **Track your mood** - Enhanced mood tracking with multiple emotions and reasons
-                4. **Try the AI features** - Personalized insights and smart analysis
-                5. **Explore weekly reflections** - Learn from your patterns
-                6. **Use the sidebar navigation** - Easy access to all features
+                1. **Complete comprehensive onboarding** - Set your main goal and preferences first!
+                2. **Generate your personalized plan** - AI creates detailed milestones and action steps
+                3. **Start with daily check-ins** - Morning, afternoon, or evening based on current time
+                4. **Track your mood** - Enhanced mood tracking with multiple emotions and reasons
+                5. **Follow your weekly schedule** - See your plan organized by days of the week
+                6. **Try the AI features** - Personalized insights and smart analysis
+                7. **Use the sidebar navigation** - Easy access to all features
                 
                 **💡 Pro Tips:**
                 - **Set clear goals first** - The AI uses your goals to provide better insights
@@ -135,25 +136,43 @@ def main():
                 - **Add reasons for your moods** - Helps identify patterns and triggers
                 - **Use the AI features** - They get smarter with your data and provide personalized analysis
                 - **Don't worry about perfection** - Just log how you're feeling
+                - **Review your plan regularly** - Your goals and milestones are always accessible
+                
+                **🎯 Goal Planning Features:**
+                - **Comprehensive onboarding** - 15 questions to understand your goals and preferences
+                - **AI-powered plan generation** - Detailed milestones and actionable steps
+                - **Smart scheduling** - Steps scheduled based on your energy patterns
+                - **Weekly schedule view** - See your plan organized by days
+                - **Plan regeneration** - Get new plans as your goals evolve
+                - **Progress tracking** - Visual progress through milestones and steps
                 
                 **😊 Enhanced Mood Tracking:**
                 - **Multiple emotions** - Select several moods that describe how you feel
                 - **Mood reasons** - Track what's influencing your emotions
                 - **Visual analytics** - See your mood patterns over time
                 - **Smart insights** - AI-powered mood analysis and recommendations
+                - **Available everywhere** - Access mood tracker from any page via sidebar
                 
                 **🤖 AI Features:**
                 - **Personalized check-in analysis** - AI analyzes your check-ins against your goals and patterns
                 - **Smart task planning** - Based on your energy, mood, and goals
+                - **Goal-aligned insights** - Analysis tied to your main objectives
                 - **Mood analysis** - Insights into your emotional patterns
                 - **Daily productivity tips** - Personalized advice based on your data
                 - **Usage limits** - 20 AI calls per day, 400 per month
                 - **Graceful fallback** - Works perfectly even without AI
                 
+                **🗄️ Data & Storage:**
+                - **Cloud persistence** - Your data is saved permanently in the cloud
+                - **Automatic backup** - Local fallback ensures no data loss
+                - **Cross-device access** - Your data follows you everywhere
+                - **Privacy protected** - Your data is secure and private
+                
                 **🧭 Navigation:**
                 - **Sidebar menu** - Quick access to all features
                 - **Mood Tracker** - Dedicated button between Daily Check-in and Weekly Reflection
                 - **Consistent experience** - Same navigation across all pages
+                - **Plan page** - View and manage your personalized goal plan
                 
                 **📝 Feedback:**
                 - **Share your thoughts** - Use the feedback forms throughout the app
@@ -163,9 +182,9 @@ def main():
                 **⚠️ Beta Expectations:**
                 - This is a **beta version** - some things might change
                 - **AI features** have usage limits to control costs
-                - **Data is saved locally** - your privacy is protected
+                - **Data is saved in the cloud** - your privacy is protected
                 - **Updates** will add new features based on your feedback
-                - **Recent improvements** - AI-powered check-in analysis, integrated onboarding, and enhanced mood tracking
+                - **Recent improvements** - Cloud database integration, AI-powered plan generation, and enhanced navigation
                 
                 **🎁 Beta Perks:**
                 - **Early access** to new features
