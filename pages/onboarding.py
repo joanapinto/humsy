@@ -353,7 +353,34 @@ if goal_title and success_metric and starting_point and weekly_time:
             st.session_state.debug_messages.append(f"🔍 Database path: {db.db_path}")
             st.session_state.debug_messages.append(f"🔍 Database exists: {os.path.exists(db.db_path)}")
             
-            goal_id = db.create_goal(user_email, goal_data)
+            # Add timeout to database operation
+            import threading
+            import time
+            
+            result = [None]
+            exception = [None]
+            
+            def db_operation():
+                try:
+                    result[0] = db.create_goal(user_email, goal_data)
+                except Exception as e:
+                    exception[0] = e
+            
+            # Start database operation in thread
+            thread = threading.Thread(target=db_operation)
+            thread.start()
+            
+            # Wait for completion with timeout
+            thread.join(timeout=10)  # 10 second timeout
+            
+            if thread.is_alive():
+                st.session_state.debug_messages.append("⏰ Database operation timed out after 10 seconds")
+                raise TimeoutError("Database operation timed out")
+            
+            if exception[0]:
+                raise exception[0]
+            
+            goal_id = result[0]
             st.session_state.debug_messages.append(f"🔍 Goal created with ID: {goal_id}")
         except Exception as e:
             error_msg = f"❌ Database error: {str(e)}"
