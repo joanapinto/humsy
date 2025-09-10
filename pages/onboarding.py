@@ -300,10 +300,12 @@ reminder_preference = st.selectbox(
 
 # Generate Plan Button
 st.markdown("---")
+# Force deployment refresh
 
 if goal_title and success_metric and starting_point and weekly_time:
     st.write("### 🚀 Ready to Generate Your Plan?")
     st.write("All required fields are filled. Click below to generate your personalized plan.")
+    st.write("✅ **NEW VERSION DEPLOYED** - Clean interface without debug messages")
     
     if st.button("🚀 Generate Plan", type="primary", use_container_width=True):
         user_email = get_user_email() or "me@example.com"
