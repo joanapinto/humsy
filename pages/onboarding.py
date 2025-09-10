@@ -315,7 +315,8 @@ if goal_title and success_metric and starting_point and weekly_time:
         db = DatabaseManager()
         st.write("🔍 Database manager created")
         
-        goal_id = db.create_goal(user_email, {
+        st.write("🔍 About to create goal in database...")
+        goal_data = {
             "title": goal_title,
             "why_matters": why_matters,
             "deadline": str(goal_deadline) if goal_deadline else None,
@@ -332,7 +333,18 @@ if goal_title and success_metric and starting_point and weekly_time:
             "resources": resources,
             "reminder_preference": reminder_preference,
             "auto_adapt": True
-        })
+        }
+        
+        st.write(f"🔍 Goal data prepared: {goal_data}")
+        
+        try:
+            st.write("🔍 Calling db.create_goal()...")
+            goal_id = db.create_goal(user_email, goal_data)
+            st.write(f"🔍 Goal created with ID: {goal_id}")
+        except Exception as e:
+            st.error(f"❌ Error creating goal: {str(e)}")
+            st.write(f"🔍 Full error: {e}")
+            st.stop()
         
         # Generate plan
         ai = AIService()
