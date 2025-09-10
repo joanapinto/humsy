@@ -300,10 +300,15 @@ reminder_preference = st.selectbox(
 
 # Generate Plan Button
 st.markdown("---")
+st.write(f"🔍 Debug: Button condition check - goal_title: {bool(goal_title)}, success_metric: {bool(success_metric)}, starting_point: {bool(starting_point)}, weekly_time: {bool(weekly_time)}")
+
 if goal_title and success_metric and starting_point and weekly_time:
     if st.button("🚀 Generate Plan", type="primary", use_container_width=True):
+        st.write("🔍 Debug: Generate Plan button clicked!")
         user_email = get_user_email() or "me@example.com"
+        st.write(f"🔍 Debug: User email: {user_email}")
         db = DatabaseManager()
+        st.write("🔍 Debug: Database manager created")
         goal_id = db.create_goal(user_email, {
             "title": goal_title,
             "why_matters": why_matters,
@@ -322,9 +327,11 @@ if goal_title and success_metric and starting_point and weekly_time:
             "reminder_preference": reminder_preference,
             "auto_adapt": True
         })
+        st.write(f"🔍 Debug: Goal created with ID: {goal_id}")
         
         # Generate plan
         ai = AIService()
+        st.write("🔍 Debug: AI service created")
         plan_data = {
             "title": goal_title,
             "why_matters": why_matters,
@@ -372,6 +379,8 @@ if goal_title and success_metric and starting_point and weekly_time:
         
         st.success("🎉 Plan generated successfully!")
         st.rerun()
+else:
+    st.write("🔍 Debug: Button condition not met - button not shown")
 
 # Show plan if it was generated
 st.write(f"🔍 Debug: Checking session state - plan_generated = {st.session_state.get('plan_generated', False)}")
