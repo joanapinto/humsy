@@ -78,11 +78,18 @@ class SupabaseManager:
                 "auto_adapt": goal_data.get('auto_adapt', True)
             }
             
+            st.write(f"🔍 Supabase URL: {self.supabase_url}")
+            st.write(f"🔍 Supabase Key: {self.supabase_key[:20]}...")
+            st.write(f"🔍 Data being sent: {data}")
+            
             response = requests.post(
                 f"{self.supabase_url}/rest/v1/goals",
                 headers=self.headers,
                 json=data
             )
+            
+            st.write(f"🔍 Response status: {response.status_code}")
+            st.write(f"🔍 Response text: {response.text}")
             
             if response.status_code == 201:
                 result = response.json()
