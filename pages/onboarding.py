@@ -3,6 +3,7 @@ import os
 import json
 import sys
 from pathlib import Path
+from datetime import datetime
 
 # Add the parent directory to the Python path to find the data module
 current_file = Path(__file__)
@@ -342,9 +343,15 @@ if goal_title and success_metric and starting_point and weekly_time:
             goal_id = db.create_goal(user_email, goal_data)
             st.write(f"🔍 Goal created with ID: {goal_id}")
         except Exception as e:
-            st.error(f"❌ Error creating goal: {str(e)}")
+            st.error(f"❌ Database error: {str(e)}")
             st.write(f"🔍 Full error: {e}")
-            st.stop()
+            st.warning("🔄 **Streamlit Cloud Issue**: Database not persistent. Using session state instead.")
+            
+            # Fallback: Use session state instead of database
+            goal_id = f"temp_{user_email}_{datetime.now().timestamp()}"
+            st.session_state.temp_goal_id = goal_id
+            st.session_state.temp_goal_data = goal_data
+            st.write(f"🔍 Using temporary goal ID: {goal_id}")
         
         # Generate plan
         ai = AIService()
@@ -372,8 +379,14 @@ if goal_title and success_metric and starting_point and weekly_time:
                 
                 if plan and plan.get("milestones"):
                     st.write("🔍 Saving milestones and steps...")
-                    db.save_milestones(goal_id, plan.get("milestones", []))
-                    db.save_steps(goal_id, plan.get("steps", []))
+                    try:
+                        db.save_milestones(goal_id, plan.get("milestones", []))
+                        db.save_steps(goal_id, plan.get("steps", []))
+                    except Exception as e:
+                        st.warning(f"⚠️ Database save failed: {str(e)}. Using session state.")
+                        # Store in session state as fallback
+                        st.session_state.temp_milestones = plan.get("milestones", [])
+                        st.session_state.temp_steps = plan.get("steps", [])
                     
                     # Store in session state
                     st.write("🔍 Setting session state...")
