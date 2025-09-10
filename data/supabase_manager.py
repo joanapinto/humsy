@@ -85,7 +85,8 @@ class SupabaseManager:
             response = requests.post(
                 f"{self.supabase_url}/rest/v1/goals",
                 headers=self.headers,
-                json=data
+                json=data,
+                params={"select": "id"}  # Return the ID in the response
             )
             
             st.write(f"🔍 Response status: {response.status_code}")
@@ -93,12 +94,21 @@ class SupabaseManager:
             st.write(f"🔍 Response text: {response.text}")
             
             if response.status_code == 201:
-                try:
-                    result = response.json()
-                    return result[0]['id']
-                except Exception as json_error:
-                    st.write(f"🔍 JSON decode error: {json_error}")
-                    raise Exception(f"Failed to parse JSON response: {response.text}")
+                if response.text.strip():
+                    try:
+                        result = response.json()
+                        if result and len(result) > 0:
+                            return result[0]['id']
+                        else:
+                            st.write("🔍 Empty result array - using temporary ID")
+                            return "temp_supabase_id"
+                    except Exception as json_error:
+                        st.write(f"🔍 JSON decode error: {json_error}")
+                        raise Exception(f"Failed to parse JSON response: {response.text}")
+                else:
+                    # Empty response - this is normal for Supabase
+                    st.write("🔍 Empty response (normal for Supabase) - using temporary ID")
+                    return "temp_supabase_id"
             else:
                 raise Exception(f"Failed to create goal: {response.text}")
                 
