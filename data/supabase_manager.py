@@ -279,3 +279,39 @@ class SupabaseManager:
         milestones = self.get_milestones(goal_id)
         steps = self.get_steps(goal_id)
         return milestones, steps
+    
+    def clear_plan(self, goal_id: int):
+        """Clear all milestones and steps for a goal"""
+        try:
+            if not self.supabase_url or not self.supabase_key:
+                raise Exception("Supabase URL or key not configured")
+            
+            # Delete steps first
+            response = requests.delete(
+                f"{self.supabase_url}/rest/v1/steps",
+                headers=self.headers,
+                params={"goal_id": f"eq.{goal_id}"}
+            )
+            
+            if response.status_code not in [200, 204]:
+                raise Exception(f"Failed to clear steps: {response.text}")
+            
+            # Delete milestones
+            response = requests.delete(
+                f"{self.supabase_url}/rest/v1/milestones",
+                headers=self.headers,
+                params={"goal_id": f"eq.{goal_id}"}
+            )
+            
+            if response.status_code not in [200, 204]:
+                raise Exception(f"Failed to clear milestones: {response.text}")
+                
+        except Exception as e:
+            st.error(f"Failed to clear plan: {str(e)}")
+            raise
+    
+    @property
+    def db_path(self):
+        """Compatibility property for SQLite-style access"""
+        # Return a dummy path since Supabase doesn't use local files
+        return "supabase://remote"

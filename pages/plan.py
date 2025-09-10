@@ -355,12 +355,19 @@ else:
     st.info("No steps yet. Complete onboarding to generate your personalized plan.")
 
 st.markdown("### Recent Adaptations")
-conn = sqlite3.connect(db.db_path)
-conn.row_factory = sqlite3.Row
-cur = conn.cursor()
-cur.execute("SELECT checkin_timestamp, alignment_score, reason, change_summary FROM plan_adaptations WHERE goal_id=? ORDER BY id DESC LIMIT 10", (goal["id"],))
-rows = [dict(r) for r in cur.fetchall()]
-conn.close()
+# Handle both SQLite and Supabase databases
+if hasattr(db, 'db_path') and db.db_path != "supabase://remote":
+    # SQLite database
+    conn = sqlite3.connect(db.db_path)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+    cur.execute("SELECT checkin_timestamp, alignment_score, reason, change_summary FROM plan_adaptations WHERE goal_id=? ORDER BY id DESC LIMIT 10", (goal["id"],))
+    rows = [dict(r) for r in cur.fetchall()]
+    conn.close()
+else:
+    # Supabase database - for now, show empty state
+    # TODO: Implement plan_adaptations table in Supabase if needed
+    rows = []
 
 if rows:
     # Create a prettier DataFrame with formatted columns
