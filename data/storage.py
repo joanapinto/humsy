@@ -55,12 +55,24 @@ def save_mood_data(mood_entry, user_email=None):
     """Save a single mood entry to database and JSON backup"""
     # Save to database
     if user_email:
-        db.save_mood_log(
-            user_email=user_email,
-            mood=mood_entry.get('mood', 'unknown'),
-            intensity=mood_entry.get('intensity', 5),
-            notes=mood_entry.get('notes', '')
-        )
+        # Handle both old format (single mood) and new format (multiple moods)
+        if 'moods' in mood_entry and mood_entry['moods']:
+            # New format: save each mood separately
+            for mood in mood_entry['moods']:
+                db.save_mood_log(
+                    user_email=user_email,
+                    mood=mood,
+                    intensity=mood_entry.get('intensity', 5),
+                    notes=mood_entry.get('note', mood_entry.get('notes', ''))
+                )
+        else:
+            # Old format: single mood
+            db.save_mood_log(
+                user_email=user_email,
+                mood=mood_entry.get('mood', 'unknown'),
+                intensity=mood_entry.get('intensity', 5),
+                notes=mood_entry.get('note', mood_entry.get('notes', ''))
+            )
     
     # Keep JSON backup for compatibility
     os.makedirs(os.path.dirname(MOOD_DATA_PATH), exist_ok=True)
