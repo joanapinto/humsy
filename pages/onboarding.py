@@ -77,17 +77,22 @@ existing_profile = load_user_profile()
 # Also check if user has an active goal (new onboarding system)
 # Try Supabase REST API first, fallback to SQLite
 try:
+    st.session_state.debug_messages = st.session_state.get("debug_messages", [])
+    st.session_state.debug_messages.append("🔍 Attempting to create SupabaseManager...")
     db = SupabaseManager()
+    st.session_state.debug_messages.append("✅ SupabaseManager created successfully")
     user_email = get_user_email() or "me@example.com"
     active_goal = db.get_active_goal(user_email)
-    st.session_state.debug_messages = st.session_state.get("debug_messages", [])
     st.session_state.debug_messages.append("✅ Using Supabase REST API")
 except Exception as e:
+    st.session_state.debug_messages = st.session_state.get("debug_messages", [])
+    st.session_state.debug_messages.append(f"⚠️ Supabase failed: {str(e)}")
+    st.session_state.debug_messages.append(f"🔍 Exception type: {type(e)}")
+    st.session_state.debug_messages.append("🔄 Falling back to SQLite...")
     db = DatabaseManager()
     user_email = get_user_email() or "me@example.com"
     active_goal = db.get_active_goal(user_email)
-    st.session_state.debug_messages = st.session_state.get("debug_messages", [])
-    st.session_state.debug_messages.append(f"⚠️ Supabase failed, using SQLite: {str(e)}")
+    st.session_state.debug_messages.append("✅ Using SQLite fallback")
 
 # Use active_goal data if available, otherwise fall back to existing_profile
 profile_data = active_goal if active_goal else existing_profile
