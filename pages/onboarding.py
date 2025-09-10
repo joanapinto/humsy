@@ -353,21 +353,31 @@ if goal_title and success_metric and starting_point and weekly_time:
         }
         
         with st.spinner("🤖 Generating your personalized plan..."):
-            plan = ai.generate_goal_plan(plan_data, user_email)
-            
-            if plan and plan.get("milestones"):
-                db.save_milestones(goal_id, plan.get("milestones", []))
-                db.save_steps(goal_id, plan.get("steps", []))
+            try:
+                st.write("🔍 Calling AI service...")
+                plan = ai.generate_goal_plan(plan_data, user_email)
+                st.write(f"🔍 Plan received: {bool(plan)}")
                 
-                # Store in session state
-                st.session_state.plan_generated = True
-                st.session_state.generated_plan = plan
-                st.session_state.goal_id = goal_id
-                
-                st.success("🎉 Plan generated successfully!")
-                st.rerun()
-            else:
-                st.error("❌ Failed to generate plan. Please try again.")
+                if plan and plan.get("milestones"):
+                    st.write("🔍 Saving milestones and steps...")
+                    db.save_milestones(goal_id, plan.get("milestones", []))
+                    db.save_steps(goal_id, plan.get("steps", []))
+                    
+                    # Store in session state
+                    st.write("🔍 Setting session state...")
+                    st.session_state.plan_generated = True
+                    st.session_state.generated_plan = plan
+                    st.session_state.goal_id = goal_id
+                    
+                    st.success("🎉 Plan generated successfully!")
+                    st.write("🔍 About to call st.rerun()...")
+                    st.rerun()
+                else:
+                    st.error("❌ Failed to generate plan. Please try again.")
+                    st.write(f"🔍 Plan data: {plan}")
+            except Exception as e:
+                st.error(f"❌ Error during plan generation: {str(e)}")
+                st.write(f"🔍 Full error: {e}")
 else:
     st.info("👆 Please fill in all mandatory fields (marked with *) to generate your personalized plan.")
 
