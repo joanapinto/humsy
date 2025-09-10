@@ -78,20 +78,12 @@ class SupabaseManager:
                 "auto_adapt": goal_data.get('auto_adapt', True)
             }
             
-            st.write(f"🔍 Supabase URL: {self.supabase_url}")
-            st.write(f"🔍 Supabase Key: {self.supabase_key[:20]}...")
-            st.write(f"🔍 Data being sent: {data}")
-            
             response = requests.post(
                 f"{self.supabase_url}/rest/v1/goals",
                 headers=self.headers,
                 json=data,
                 params={"select": "id"}  # Return the ID in the response
             )
-            
-            st.write(f"🔍 Response status: {response.status_code}")
-            st.write(f"🔍 Response headers: {dict(response.headers)}")
-            st.write(f"🔍 Response text: {response.text}")
             
             if response.status_code == 201:
                 if response.text.strip():
@@ -100,14 +92,11 @@ class SupabaseManager:
                         if result and len(result) > 0:
                             return result[0]['id']
                         else:
-                            st.write("🔍 Empty result array - using temporary ID")
                             return "temp_supabase_id"
                     except Exception as json_error:
-                        st.write(f"🔍 JSON decode error: {json_error}")
                         raise Exception(f"Failed to parse JSON response: {response.text}")
                 else:
                     # Empty response - this is normal for Supabase
-                    st.write("🔍 Empty response (normal for Supabase) - using temporary ID")
                     return "temp_supabase_id"
             else:
                 raise Exception(f"Failed to create goal: {response.text}")
