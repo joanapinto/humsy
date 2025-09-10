@@ -306,8 +306,10 @@ if goal_title and success_metric and starting_point and weekly_time:
     # Test button to check if button clicks work at all
     col1, col2 = st.columns([3, 1])
     with col1:
+        st.write("🔍 Debug: About to render Generate Plan button")
         if st.button("🚀 Generate Plan", type="primary", use_container_width=True):
             st.write("🔍 Debug: Generate Plan button clicked!")
+            st.write("🔍 Debug: Starting plan generation process...")
             user_email = get_user_email() or "me@example.com"
             st.write(f"🔍 Debug: User email: {user_email}")
             db = DatabaseManager()
