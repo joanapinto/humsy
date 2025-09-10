@@ -273,3 +273,9 @@ class SupabaseManager:
         except Exception as e:
             st.error(f"Failed to update goal: {str(e)}")
             raise
+    
+    def list_plan(self, goal_id: int) -> tuple[list[dict], list[dict]]:
+        """Get both milestones and steps for a goal"""
+        milestones = self.get_milestones(goal_id)
+        steps = self.get_steps(goal_id)
+        return milestones, steps
