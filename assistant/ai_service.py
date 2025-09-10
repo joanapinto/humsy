@@ -25,16 +25,36 @@ class AIService:
         # Try Streamlit secrets first (for Streamlit Cloud), then environment variables
         api_key = None
         
+        # Debug: Check API key loading
+        st.write("🔍 **AI Service Debug:**")
+        
         try:
             api_key = st.secrets.get("openai_api_key", "")
-        except:
-            pass
+            st.write(f"- Secrets check: {'✅ Found' if api_key else '❌ Not found'}")
+            if api_key:
+                st.write(f"- API key length: {len(api_key)}")
+                st.write(f"- API key starts with: {api_key[:10]}...")
+        except Exception as e:
+            st.write(f"- Secrets error: {str(e)}")
         
         if not api_key:
-            st.warning("⚠️ OpenAI API key not found. AI features will be disabled.")
+            api_key = os.getenv('OPENAI_API_KEY')
+            st.write(f"- Environment check: {'✅ Found' if api_key else '❌ Not found'}")
+        
+        if not api_key:
+            st.error("❌ **CRITICAL: No API key found!**")
+            st.info("💡 **Setup Instructions:**\n"
+                   "1. Add your OpenAI API key to Streamlit secrets as `openai_api_key`\n"
+                   "2. Or set the `OPENAI_API_KEY` environment variable\n"
+                   "3. Restart the app after adding the key")
             self.client = None
         else:
-            self.client = openai.OpenAI(api_key=api_key)
+            try:
+                self.client = openai.OpenAI(api_key=api_key)
+                st.success("✅ OpenAI client initialized successfully")
+            except Exception as e:
+                st.error(f"❌ Failed to initialize OpenAI client: {str(e)}")
+                self.client = None
         
         # Initialize usage limiter
         self.usage_limiter = UsageLimiter()
@@ -670,7 +690,15 @@ IMPORTANT: Make each task specific to their stated focus. If they want to "work 
         Calls your chat model and parses JSON safely. 
         If your project already has a 'chat' method, use it here.
         """
+        st.write("🔍 **API Call Debug:**")
+        st.write(f"- Client available: {self.client is not None}")
+        
+        if not self.client:
+            st.error("❌ No OpenAI client available")
+            return {}
+        
         try:
+            st.write("📡 Making API call...")
             response = self.client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[
@@ -680,35 +708,72 @@ IMPORTANT: Make each task specific to their stated focus. If they want to "work 
                 max_tokens=1000,
                 temperature=0.3
             )
+            st.write("✅ API call successful!")
+            
             txt = response.choices[0].message.content.strip().strip("`")
+            st.write(f"- Response length: {len(txt)} characters")
+            st.write(f"- Response preview: {txt[:200]}...")
+            
             # try to extract JSON if model wrapped in code fences
             if txt.startswith("{") and txt.endswith("}"):
-                return json.loads(txt)
+                st.write("📋 Parsing JSON...")
+                result = json.loads(txt)
+                st.write("✅ JSON parsed successfully!")
+                return result
+            
             # fallback: find first JSON block
             start = txt.find("{")
             end = txt.rfind("}")
             if start != -1 and end != -1:
-                return json.loads(txt[start:end+1])
+                st.write("📋 Extracting JSON from response...")
+                result = json.loads(txt[start:end+1])
+                st.write("✅ JSON extracted and parsed successfully!")
+                return result
+            
+            st.error("❌ No valid JSON found in response")
+            return {}
+            
         except Exception as e:
-            st.error(f"❌ AI API Error: {str(e)}")
-        return {}
+            st.error(f"❌ **API Error Details:** {str(e)}")
+            st.error(f"❌ **Error Type:** {type(e).__name__}")
+            return {}
 
     # ---- Feature flags/limits already exist; reuse your can_use_feature if present ----
     def generate_goal_plan(self, goal: dict, user_email: str = None) -> dict:
+        st.write("🔍 **Plan Generation Debug:**")
+        st.write(f"- AI service available: {self.is_available()}")
+        st.write(f"- Client initialized: {self.client is not None}")
+        
         try:
             can_use, reason = self.can_use_feature("plan_generation", user_email)
-        except Exception:
+            st.write(f"- Can use feature: {can_use} - {reason}")
+        except Exception as e:
+            st.write(f"- Feature check error: {str(e)}")
             can_use = True
+        
         if not can_use:
+            st.write("⚠️ Using fallback plan due to feature limits")
             from .fallback import FallbackAssistant
             fallback = FallbackAssistant()
             return fallback.fallback_plan(goal)
+        
+        st.write("📝 Generating prompt...")
         prompt = PromptTemplates.goal_plan_prompt(goal)
+        st.write(f"- Prompt length: {len(prompt)} characters")
+        
+        st.write("🤖 Calling AI API...")
         out = self._chat_json(prompt)
+        st.write(f"- API response received: {bool(out)}")
+        
         if not out:
+            st.write("⚠️ No response from AI, using fallback plan")
             from .fallback import FallbackAssistant
             fallback = FallbackAssistant()
             return fallback.fallback_plan(goal)
+        
+        st.write("✅ Plan generated successfully!")
+        st.write(f"- Milestones: {len(out.get('milestones', []))}")
+        st.write(f"- Steps: {len(out.get('steps', []))}")
         
         # Validate and fix the plan
         out = self._validate_and_fix_plan(out, goal)
