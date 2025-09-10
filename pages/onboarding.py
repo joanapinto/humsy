@@ -362,7 +362,7 @@ if goal_title and success_metric and starting_point and weekly_time:
                 except Exception as ai_error:
                     st.error(f"❌ Error creating AI service: {str(ai_error)}")
                     st.write(f"🔍 Debug: AI service error details: {type(ai_error).__name__}: {str(ai_error)}")
-                    return
+                    st.stop()
                 plan_data = {
                     "title": goal_title,
                     "why_matters": why_matters,
