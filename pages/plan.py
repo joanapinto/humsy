@@ -249,9 +249,31 @@ else:
 
 # Show weekly schedule view
 if steps:
-    st.markdown("## 📅 Your Weekly Schedule")
+    st.markdown("## 📅 This Week's Schedule")
     
-    # Group steps by day
+    # Get current week's activities (only show steps that are due this week)
+    from datetime import datetime, timedelta
+    today = datetime.now().date()
+    start_of_week = today - timedelta(days=today.weekday())  # Monday
+    end_of_week = start_of_week + timedelta(days=6)  # Sunday
+    
+    # Filter steps to only show those due this week
+    current_week_steps = []
+    for step in steps:
+        due_date_str = step.get('due_date', '')
+        if due_date_str:
+            try:
+                due_date = datetime.strptime(due_date_str, '%Y-%m-%d').date()
+                if start_of_week <= due_date <= end_of_week:
+                    current_week_steps.append(step)
+            except:
+                # If date parsing fails, include the step
+                current_week_steps.append(step)
+        else:
+            # If no due date, include based on suggested day
+            current_week_steps.append(step)
+    
+    # Group current week steps by day
     days_of_week = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
     free_days = goal.get("free_days", "").split(",") if goal.get("free_days") else []
     free_days = [day.strip() for day in free_days if day.strip()]
@@ -266,7 +288,7 @@ if steps:
                 st.write("*Your free day*")
             else:
                 st.markdown(f"**{day}**")
-                day_steps = [s for s in steps if s['suggested_day'] == day]
+                day_steps = [s for s in current_week_steps if s['suggested_day'] == day]
                 if day_steps:
                     for step in day_steps:
                         st.write(f"• **{step['title']}**")
@@ -277,38 +299,41 @@ if steps:
     
     # Show detailed activity explanations below
     st.markdown("---")
-    st.markdown("## 📋 Activity Guide")
-    st.info("💡 **Below are detailed explanations of each activity with practical steps you can take.**")
+    st.markdown("## 📋 This Week's Activity Guide")
+    st.info("💡 **Below are detailed explanations of each activity scheduled for this week.**")
     
-    # Group all steps and show their detailed explanations
-    all_activities = {}
-    for step in steps:
+    # Group current week steps and show their detailed explanations
+    current_week_activities = {}
+    for step in current_week_steps:
         activity_name = step['title']
-        if activity_name not in all_activities:
-            all_activities[activity_name] = {
+        if activity_name not in current_week_activities:
+            current_week_activities[activity_name] = {
                 'description': step.get('description', ''),
                 'estimated_time': step['estimate_minutes'],
                 'days': []
             }
-        all_activities[activity_name]['days'].append(step['suggested_day'])
+        current_week_activities[activity_name]['days'].append(step['suggested_day'])
     
-    for activity_name, details in all_activities.items():
-        with st.expander(f"📌 {activity_name} ({details['estimated_time']} min)"):
-            # Show which days this activity is scheduled
-            days_str = ", ".join(details['days'])
-            st.write(f"**📅 Scheduled on:** {days_str}")
-            st.write(f"**⏱️ Time needed:** {details['estimated_time']} minutes")
-            
-            # Show the detailed description
-            description = details['description']
-            if description:
-                # Clean up the description
-                clean_description = description.replace('EXACTLY: ', '').replace(' - Break this down into specific, actionable steps.', '')
-                st.write("**📋 How to do this:**")
-                st.write(clean_description)
-            else:
-                st.write("**📋 How to do this:**")
-                st.write("Detailed instructions will be provided when you start this activity.")
+    if current_week_activities:
+        for activity_name, details in current_week_activities.items():
+            with st.expander(f"📌 {activity_name} ({details['estimated_time']} min)"):
+                # Show which days this activity is scheduled this week
+                days_str = ", ".join(details['days'])
+                st.write(f"**📅 Scheduled on:** {days_str}")
+                st.write(f"**⏱️ Time needed:** {details['estimated_time']} minutes")
+                
+                # Show the detailed description
+                description = details['description']
+                if description:
+                    # Clean up the description
+                    clean_description = description.replace('EXACTLY: ', '').replace(' - Break this down into specific, actionable steps.', '')
+                    st.write("**📋 How to do this:**")
+                    st.write(clean_description)
+                else:
+                    st.write("**📋 How to do this:**")
+                    st.write("Detailed instructions will be provided when you start this activity.")
+    else:
+        st.info("No activities scheduled for this week. Check your plan timeline or regenerate your plan.")
     
     # Show all steps in a summary table
     st.markdown("## 📋 All Action Steps")
