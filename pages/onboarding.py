@@ -348,51 +348,14 @@ if goal_title and success_metric and starting_point and weekly_time:
         
         st.session_state.debug_messages.append(f"🔍 Goal data prepared: {goal_data}")
         
-        try:
-            st.session_state.debug_messages.append("🔍 Calling db.create_goal()...")
-            st.session_state.debug_messages.append(f"🔍 Database path: {db.db_path}")
-            st.session_state.debug_messages.append(f"🔍 Database exists: {os.path.exists(db.db_path)}")
-            
-            # Add timeout to database operation
-            import threading
-            import time
-            
-            result = [None]
-            exception = [None]
-            
-            def db_operation():
-                try:
-                    result[0] = db.create_goal(user_email, goal_data)
-                except Exception as e:
-                    exception[0] = e
-            
-            # Start database operation in thread
-            thread = threading.Thread(target=db_operation)
-            thread.start()
-            
-            # Wait for completion with timeout
-            thread.join(timeout=10)  # 10 second timeout
-            
-            if thread.is_alive():
-                st.session_state.debug_messages.append("⏰ Database operation timed out after 10 seconds")
-                raise TimeoutError("Database operation timed out")
-            
-            if exception[0]:
-                raise exception[0]
-            
-            goal_id = result[0]
-            st.session_state.debug_messages.append(f"🔍 Goal created with ID: {goal_id}")
-        except Exception as e:
-            error_msg = f"❌ Database error: {str(e)}"
-            st.session_state.debug_messages.append(error_msg)
-            st.session_state.debug_messages.append(f"🔍 Full error: {e}")
-            st.session_state.debug_messages.append("🔄 **Streamlit Cloud Issue**: Database not persistent. Using session state instead.")
-            
-            # Fallback: Use session state instead of database
-            goal_id = f"temp_{user_email}_{datetime.now().timestamp()}"
-            st.session_state.temp_goal_id = goal_id
-            st.session_state.temp_goal_data = goal_data
-            st.session_state.debug_messages.append(f"🔍 Using temporary goal ID: {goal_id}")
+        # Skip database entirely for now - use session state directly
+        st.session_state.debug_messages.append("🔄 **Streamlit Cloud Mode**: Skipping database, using session state directly")
+        
+        # Use session state instead of database
+        goal_id = f"temp_{user_email}_{datetime.now().timestamp()}"
+        st.session_state.temp_goal_id = goal_id
+        st.session_state.temp_goal_data = goal_data
+        st.session_state.debug_messages.append(f"🔍 Using temporary goal ID: {goal_id}")
         
         # Generate plan
         ai = AIService()
@@ -428,15 +391,11 @@ if goal_title and success_metric and starting_point and weekly_time:
                 st.session_state.debug_messages.append(f"🔍 Plan content: {plan}")
                 
                 if plan and plan.get("milestones"):
-                    st.session_state.debug_messages.append("🔍 Saving milestones and steps...")
-                    try:
-                        db.save_milestones(goal_id, plan.get("milestones", []))
-                        db.save_steps(goal_id, plan.get("steps", []))
-                    except Exception as e:
-                        st.session_state.debug_messages.append(f"⚠️ Database save failed: {str(e)}. Using session state.")
-                        # Store in session state as fallback
-                        st.session_state.temp_milestones = plan.get("milestones", [])
-                        st.session_state.temp_steps = plan.get("steps", [])
+                    st.session_state.debug_messages.append("🔍 Saving milestones and steps to session state...")
+                    # Store in session state directly (skip database)
+                    st.session_state.temp_milestones = plan.get("milestones", [])
+                    st.session_state.temp_steps = plan.get("steps", [])
+                    st.session_state.debug_messages.append("🔍 Milestones and steps saved to session state")
                     
                     # Store in session state
                     st.session_state.debug_messages.append("🔍 Setting session state...")
