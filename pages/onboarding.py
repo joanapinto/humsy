@@ -398,9 +398,6 @@ if st.session_state.get("plan_generated", False):
         try:
             db = DatabaseManager()
             
-            # Debug: Check available methods
-            st.write(f"🔍 **Debug: DatabaseManager methods:** {[method for method in dir(db) if not method.startswith('_')]}")
-            
             # Check if update_goal method exists
             if hasattr(db, 'update_goal'):
                 # Update goal with user preferences
