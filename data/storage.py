@@ -136,18 +136,24 @@ def load_checkin_data(user_email=None):
             # Convert database format to JSON format for compatibility
             converted_checkins = []
             for checkin in checkins:
+                # Map database fields to expected format, with defaults for missing fields
                 converted_checkin = {
-                    'time_period': checkin['time_period'],
-                    'sleep_quality': checkin['sleep_quality'],
-                    'energy_level': checkin['energy_level'],
-                    'focus_today': checkin['focus_today'],
-                    'current_feeling': checkin['current_feeling'],
-                    'day_progress': checkin['day_progress'],
-                    'accomplishments': checkin['accomplishments'],
-                    'challenges': checkin['challenges'],
-                    'task_plan': checkin['task_plan'],
-                    'task_completion': checkin['task_completion'],
-                    'timestamp': checkin['created_at']
+                    'time_period': checkin.get('time_period', 'unknown'),
+                    'sleep_quality': checkin.get('sleep_quality', 'unknown'),
+                    'energy_level': checkin.get('energy_level', 'Moderate'),
+                    'focus_today': checkin.get('focus_today', ''),
+                    'current_feeling': checkin.get('current_feeling', ''),
+                    'day_progress': checkin.get('day_progress', ''),
+                    'accomplishments': checkin.get('accomplishments', ''),
+                    'challenges': checkin.get('challenges', ''),
+                    'task_plan': checkin.get('task_plan', {}),
+                    'task_completion': checkin.get('task_completion', {}),
+                    'timestamp': checkin.get('created_at', checkin.get('timestamp', datetime.now().isoformat())),
+                    'checkin_hour': checkin.get('checkin_hour', datetime.now().hour),
+                    'notes': checkin.get('notes', ''),
+                    'mood': checkin.get('mood', ''),
+                    'completed_steps': checkin.get('completed_steps', []),
+                    'skipped_steps': checkin.get('skipped_steps', [])
                 }
                 converted_checkins.append(converted_checkin)
             return converted_checkins
