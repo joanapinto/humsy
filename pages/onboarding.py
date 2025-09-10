@@ -395,22 +395,49 @@ if st.session_state.get("plan_generated", False):
     
     # Save Plan button
     if st.button("💾 Save Plan", type="primary", use_container_width=True):
-        db = DatabaseManager()
-        # Update goal with user preferences
-        db.update_goal(goal_id, {
-            "auto_adapt": auto_adapt == "Yes"
-        })
-        
-        st.success("🎉 Your personalized plan has been saved!")
-        st.balloons()
-        
-        # Clear session state
-        st.session_state.plan_generated = False
-        st.session_state.generated_plan = None
-        st.session_state.goal_id = None
-        
-        # Redirect to plan page
-        st.switch_page("pages/plan.py")
+        try:
+            db = DatabaseManager()
+            
+            # Debug: Check available methods
+            st.write(f"🔍 **Debug: DatabaseManager methods:** {[method for method in dir(db) if not method.startswith('_')]}")
+            
+            # Check if update_goal method exists
+            if hasattr(db, 'update_goal'):
+                # Update goal with user preferences
+                db.update_goal(goal_id, {
+                    "auto_adapt": auto_adapt == "Yes"
+                })
+            else:
+                # Fallback: direct SQL update
+                import sqlite3
+                conn = sqlite3.connect(db.db_path)
+                cur = conn.cursor()
+                cur.execute("UPDATE goals SET auto_adapt = ? WHERE id = ?", (auto_adapt == "Yes", goal_id))
+                conn.commit()
+                conn.close()
+            
+            st.success("🎉 Your personalized plan has been saved!")
+            st.balloons()
+            
+            # Clear session state
+            st.session_state.plan_generated = False
+            st.session_state.generated_plan = None
+            st.session_state.goal_id = None
+            
+            # Redirect to plan page
+            st.switch_page("pages/plan.py")
+            
+        except Exception as e:
+            st.error(f"❌ Error saving plan: {str(e)}")
+            st.info("💡 Your plan was generated successfully, but there was an issue saving your preferences. You can still view your plan on the Plan page.")
+            
+            # Clear session state and redirect anyway
+            st.session_state.plan_generated = False
+            st.session_state.generated_plan = None
+            st.session_state.goal_id = None
+            
+            if st.button("📋 Go to Plan Page", use_container_width=True):
+                st.switch_page("pages/plan.py")
             
 else:
     st.info("👆 Please fill in all mandatory fields (marked with *) to generate your personalized plan.")
