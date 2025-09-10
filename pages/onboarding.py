@@ -348,52 +348,69 @@ if goal_title and success_metric and starting_point and weekly_time:
         db.save_milestones(goal_id, plan.get("milestones", []))
         db.save_steps(goal_id, plan.get("steps", []))
         
+        # Store in session state to persist across reruns
+        st.session_state.plan_generated = True
+        st.session_state.generated_plan = plan
+        st.session_state.goal_id = goal_id
+        
         st.success("🎉 Plan generated successfully!")
+        st.rerun()
+
+# Show plan if it was generated
+if st.session_state.get("plan_generated", False):
+    plan = st.session_state.get("generated_plan", {})
+    goal_id = st.session_state.get("goal_id")
+    
+    # Display the generated plan
+    st.subheader("📋 Your Generated Plan")
+    
+    # Display milestones
+    if plan.get("milestones"):
+        st.markdown("### 🎯 Milestones")
+        for i, milestone in enumerate(plan["milestones"], 1):
+            with st.expander(f"Milestone {i}: {milestone.get('title', 'Untitled')}"):
+                st.write(f"**Description:** {milestone.get('description', 'No description')}")
+                st.write(f"**Target Date:** {milestone.get('target_date', 'Not set')}")
+    
+    # Display steps
+    if plan.get("steps"):
+        st.markdown("### 📝 Action Steps")
+        for i, step in enumerate(plan["steps"], 1):
+            with st.expander(f"Step {i}: {step.get('title', 'Untitled')}"):
+                st.write(f"**Description:** {step.get('description', 'No description')}")
+                st.write(f"**Due Date:** {step.get('due_date', 'Not set')}")
+                st.write(f"**Suggested Day:** {step.get('suggested_day', 'Not set')}")
+                st.write(f"**Estimated Time:** {step.get('estimated_time', 'Not set')}")
+    
+    st.markdown("---")
+    
+    # Post-generation questions
+    st.subheader("📋 Plan Review")
+    
+    col1, col2 = st.columns(2)
+    with col1:
+        edit_plan = st.radio("Would you like to edit the plan before saving?", ["Yes", "No"], horizontal=True)
+    with col2:
+        auto_adapt = st.radio("Do you want the plan to auto-adapt when you skip tasks?", ["Yes", "No"], horizontal=True)
+    
+    # Save Plan button
+    if st.button("💾 Save Plan", type="primary", use_container_width=True):
+        db = DatabaseManager()
+        # Update goal with user preferences
+        db.update_goal(goal_id, {
+            "auto_adapt": auto_adapt == "Yes"
+        })
         
-        # Display the generated plan
-        st.subheader("📋 Your Generated Plan")
+        st.success("🎉 Your personalized plan has been saved!")
+        st.balloons()
         
-        # Display milestones
-        if plan.get("milestones"):
-            st.markdown("### 🎯 Milestones")
-            for i, milestone in enumerate(plan["milestones"], 1):
-                with st.expander(f"Milestone {i}: {milestone.get('title', 'Untitled')}"):
-                    st.write(f"**Description:** {milestone.get('description', 'No description')}")
-                    st.write(f"**Target Date:** {milestone.get('target_date', 'Not set')}")
+        # Clear session state
+        st.session_state.plan_generated = False
+        st.session_state.generated_plan = None
+        st.session_state.goal_id = None
         
-        # Display steps
-        if plan.get("steps"):
-            st.markdown("### 📝 Action Steps")
-            for i, step in enumerate(plan["steps"], 1):
-                with st.expander(f"Step {i}: {step.get('title', 'Untitled')}"):
-                    st.write(f"**Description:** {step.get('description', 'No description')}")
-                    st.write(f"**Due Date:** {step.get('due_date', 'Not set')}")
-                    st.write(f"**Suggested Day:** {step.get('suggested_day', 'Not set')}")
-                    st.write(f"**Estimated Time:** {step.get('estimated_time', 'Not set')}")
-        
-        st.markdown("---")
-        
-        # Post-generation questions
-        st.subheader("📋 Plan Review")
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            edit_plan = st.radio("Would you like to edit the plan before saving?", ["Yes", "No"], horizontal=True)
-        with col2:
-            auto_adapt = st.radio("Do you want the plan to auto-adapt when you skip tasks?", ["Yes", "No"], horizontal=True)
-        
-        # Save Plan button
-        if st.button("💾 Save Plan", type="primary", use_container_width=True):
-            # Update goal with user preferences
-            db.update_goal(goal_id, {
-                "auto_adapt": auto_adapt == "Yes"
-            })
-            
-            st.success("🎉 Your personalized plan has been saved!")
-            st.balloons()
-            
-            # Redirect to plan page
-            st.switch_page("pages/plan.py")
+        # Redirect to plan page
+        st.switch_page("pages/plan.py")
             
 else:
     st.info("👆 Please fill in all mandatory fields (marked with *) to generate your personalized plan.")
