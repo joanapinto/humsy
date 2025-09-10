@@ -269,20 +269,29 @@ if steps:
     start_of_week = today - timedelta(days=today.weekday())  # Monday
     end_of_week = start_of_week + timedelta(days=6)  # Sunday
     
-    # Filter steps to only show those due this week
+    # Filter steps to show those due this week or with suggested days
     current_week_steps = []
     for step in steps:
         due_date_str = step.get('due_date', '')
+        suggested_day = step.get('suggested_day', '')
+        
+        # Include if due this week
         if due_date_str:
             try:
                 due_date = datetime.strptime(due_date_str, '%Y-%m-%d').date()
                 if start_of_week <= due_date <= end_of_week:
                     current_week_steps.append(step)
+                    continue
             except:
-                # If date parsing fails, include the step
-                current_week_steps.append(step)
-        else:
-            # If no due date, include based on suggested day
+                pass
+        
+        # Include if has suggested day (even if no due date)
+        if suggested_day and suggested_day.strip():
+            current_week_steps.append(step)
+            continue
+        
+        # If no due date or suggested day, include first few steps anyway
+        if len(current_week_steps) < 5:  # Show up to 5 steps even without dates
             current_week_steps.append(step)
     
     # Group current week steps by day
@@ -300,11 +309,21 @@ if steps:
                 st.write("*Your free day*")
             else:
                 st.markdown(f"**{day}**")
-                day_steps = [s for s in current_week_steps if s['suggested_day'] == day]
+                # Find steps for this day
+                day_steps = [s for s in current_week_steps if s.get('suggested_day', '').strip() == day]
+                
+                # If no steps assigned to this day, assign some unassigned steps
+                if not day_steps and current_week_steps:
+                    unassigned_steps = [s for s in current_week_steps if not s.get('suggested_day', '').strip()]
+                    if unassigned_steps and i < len(unassigned_steps):
+                        day_steps = [unassigned_steps[i]]
+                
                 if day_steps:
                     for step in day_steps:
                         st.write(f"• **{step['title']}**")
-                        st.write(f"  ⏱️ {step['estimate_minutes']} min")
+                        estimate = step.get('estimate_minutes', 0)
+                        if estimate > 0:
+                            st.write(f"  ⏱️ {estimate} min")
                         st.write("---")
                 else:
                     st.write("*No activities scheduled*")
