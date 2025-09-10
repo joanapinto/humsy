@@ -350,6 +350,29 @@ if goal_title and success_metric and starting_point and weekly_time:
         
         st.success("🎉 Plan generated successfully!")
         
+        # Display the generated plan
+        st.subheader("📋 Your Generated Plan")
+        
+        # Display milestones
+        if plan.get("milestones"):
+            st.markdown("### 🎯 Milestones")
+            for i, milestone in enumerate(plan["milestones"], 1):
+                with st.expander(f"Milestone {i}: {milestone.get('title', 'Untitled')}"):
+                    st.write(f"**Description:** {milestone.get('description', 'No description')}")
+                    st.write(f"**Target Date:** {milestone.get('target_date', 'Not set')}")
+        
+        # Display steps
+        if plan.get("steps"):
+            st.markdown("### 📝 Action Steps")
+            for i, step in enumerate(plan["steps"], 1):
+                with st.expander(f"Step {i}: {step.get('title', 'Untitled')}"):
+                    st.write(f"**Description:** {step.get('description', 'No description')}")
+                    st.write(f"**Due Date:** {step.get('due_date', 'Not set')}")
+                    st.write(f"**Suggested Day:** {step.get('suggested_day', 'Not set')}")
+                    st.write(f"**Estimated Time:** {step.get('estimated_time', 'Not set')}")
+        
+        st.markdown("---")
+        
         # Post-generation questions
         st.subheader("📋 Plan Review")
         
@@ -359,10 +382,11 @@ if goal_title and success_metric and starting_point and weekly_time:
         with col2:
             auto_adapt = st.radio("Do you want the plan to auto-adapt when you skip tasks?", ["Yes", "No"], horizontal=True)
         
-        if edit_plan == "No" and auto_adapt == "No":
-            # Update auto_adapt setting
+        # Save Plan button
+        if st.button("💾 Save Plan", type="primary", use_container_width=True):
+            # Update goal with user preferences
             db.update_goal(goal_id, {
-                "auto_adapt": False
+                "auto_adapt": auto_adapt == "Yes"
             })
             
             st.success("🎉 Your personalized plan has been saved!")
@@ -370,8 +394,6 @@ if goal_title and success_metric and starting_point and weekly_time:
             
             # Redirect to plan page
             st.switch_page("pages/plan.py")
-        else:
-            st.info("Please make your selections above and click 'Save Plan' when ready.")
             
 else:
     st.info("👆 Please fill in all mandatory fields (marked with *) to generate your personalized plan.")
