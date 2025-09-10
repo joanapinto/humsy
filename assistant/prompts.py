@@ -437,16 +437,35 @@ WEEKLY SCHEDULING EXAMPLES:
             
             **Cooking (Healthy meal example):**
             Instead of "cook healthy meal" → "Make a simple stir-fry with vegetables and protein. Heat 1 tablespoon oil in a pan. Add chopped onion and garlic, cook 2 minutes. Add your protein (chicken, tofu, or beans), cook 5 minutes. Add mixed vegetables (bell peppers, broccoli, carrots), cook 5 more minutes. Season with soy sauce, ginger, and a pinch of salt. Serve over rice or noodles. You'll have a nutritious, homemade meal in 20 minutes."
+            
+            **Business (Start a business example):**
+            Instead of "research business idea" → "Validate your business idea using Google Forms. Create a free survey asking: 1) 'What's your biggest problem with [your topic]?', 2) 'How much would you pay to solve this?', 3) 'Would you buy a product that solves this?'. Share the survey on Facebook groups, Reddit, and LinkedIn. Aim for 50 responses. Analyze results to see if people actually want your solution. You'll know if your idea has market demand."
+            
+            **Business (Market research example):**
+            Instead of "analyze competition" → "Research 5 direct competitors on Google. For each competitor: 1) Visit their website, 2) Note their pricing, 3) Read 10 customer reviews on Google/Yelp, 4) Check their social media (followers, engagement), 5) Identify what they do well and poorly. Create a simple spreadsheet with: Company name, Price, Strengths, Weaknesses, Customer complaints. You'll understand your competitive landscape and find opportunities."
 
-REQUIRED FORMAT FOR EVERY STEP:
-Each step description MUST be:
-1. **SPECIFIC**: Exact steps with numbers, times, and clear actions
-2. **PRACTICAL**: Real tools, apps, or methods the user can actually use
-3. **ACHIEVABLE**: Something they can complete in the time given
-4. **MEANINGFUL**: Actually helps them progress toward their goal
-5. **CLEAR**: Easy to read and follow without confusion
+CRITICAL: STEP DESCRIPTIONS MUST BE HIGHLY SPECIFIC AND ACTIONABLE
 
-Focus on WHAT to do, HOW to do it, and WHY it matters. Avoid generic advice like "set up workspace" or "take breaks" unless it's truly necessary for that specific activity.
+❌ FORBIDDEN GENERIC DESCRIPTIONS:
+- "Specific action to move toward [goal]"
+- "Take steps to achieve [goal]"
+- "Work on [goal]"
+- "Practice [skill]"
+- "Research [topic]"
+- "Plan [activity]"
+- Any vague, non-actionable description
+
+✅ REQUIRED: Each step description MUST include:
+1. **EXACT TOOLS/APPS**: Name specific websites, apps, books, or resources
+2. **STEP-BY-STEP ACTIONS**: Numbered list of exactly what to do
+3. **SPECIFIC EXAMPLES**: Real words, exercises, or tasks
+4. **MEASURABLE OUTCOMES**: What they'll have accomplished
+5. **TIME BREAKDOWN**: How to use the allocated minutes
+
+EXAMPLE FORMAT:
+"Open [specific app/website]. Do [exact action 1]. Then [exact action 2]. Use [specific tool] to [specific task]. You'll have [specific result] when done."
+
+EVERY description must be as detailed as the examples above. NO EXCEPTIONS.
 
 Return STRICT JSON only with this schema:
 {{

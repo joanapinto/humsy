@@ -829,20 +829,81 @@ IMPORTANT: Make each task specific to their stated focus. If they want to "work 
                 current_minutes = step.get('estimate_minutes', 0)
                 step['estimate_minutes'] = max(15, int(current_minutes * scale_factor))
         
-        # Enhance step descriptions to be ultra-explicit - FORCE ALL STEPS
+        # Validate step descriptions are specific and actionable
         for step in plan.get('steps', []):
             title = step.get('title', '')
             description = step.get('description', '')
             minutes = step.get('estimate_minutes', 30)
             goal_title = goal.get('title', 'your goal')
             
-            # FORCE ultra-explicit descriptions for ALL steps regardless of title
-            # Check if description is already enhanced (contains detailed sections)
-            if not any(keyword in description for keyword in ['TOTAL TIME:', 'EFFORT LEVEL:', 'SAFETY:', 'EQUIPMENT:']):
-                # Create ultra-explicit description based on the step title and goal
-                step['description'] = f"{title} - Break this down into specific, actionable steps. Set up your workspace with everything you need. Follow a clear sequence: preparation (5 minutes), main activity ({minutes-10} minutes), and wrap-up (5 minutes). Take breaks every 15-20 minutes to maintain focus. TOTAL TIME: {minutes} minutes. EFFORT LEVEL: 5/10 (moderate). SAFETY: Stop if you feel overwhelmed, frustrated, or any physical discomfort. EQUIPMENT: Gather all necessary materials before starting. HYDRATION: Keep water nearby and drink regularly. SUCCESS CRITERIA: You completed the full activity with clear progress made. WHAT TO EXPECT: You'll feel engaged, possibly challenged, and accomplished when done. PROGRESSION: This builds skills and momentum toward achieving {goal_title}."
+            # Check if description is generic and needs improvement
+            generic_phrases = [
+                "Specific action to move toward",
+                "Take steps to achieve",
+                "Work on",
+                "Practice",
+                "Research",
+                "Plan",
+                "Break this down into specific, actionable steps",
+                "Set up your workspace",
+                "Follow a clear sequence"
+            ]
+            
+            is_generic = any(phrase in description for phrase in generic_phrases)
+            
+            if is_generic or len(description.strip()) < 50:
+                # Generate a specific, actionable description based on the step title and goal
+                step['description'] = self._generate_specific_description(title, goal_title, minutes)
         
         return plan
+
+    def _generate_specific_description(self, title: str, goal: str, minutes: int) -> str:
+        """Generate a specific, actionable description for a step"""
+        
+        # Business-related descriptions
+        if any(word in title.lower() for word in ['business', 'start', 'company', 'entrepreneur', 'market', 'research', 'plan']):
+            if 'research' in title.lower():
+                return f"Research your business idea using Google. Search for '{goal}' + 'problems' and '{goal}' + 'solutions'. Read 5 articles about common challenges in this field. Visit competitor websites and note their pricing. Check Reddit and Facebook groups for customer complaints. Create a simple list of: 1) Top 3 problems people face, 2) How competitors solve them, 3) Pricing ranges. You'll understand the market and find opportunities."
+            elif 'plan' in title.lower():
+                return f"Create a simple business plan using Google Docs. Write: 1) What problem you solve (1 paragraph), 2) Who your customers are (age, location, interests), 3) How you'll solve it (your product/service), 4) How you'll make money (pricing), 5) What you need to start (tools, skills, money). Use free templates from SCORE.org. You'll have a clear roadmap for your business."
+            elif 'validate' in title.lower():
+                return f"Validate your business idea using Google Forms. Create a free survey asking: 1) 'What's your biggest problem with {goal.lower()}?', 2) 'How much would you pay to solve this?', 3) 'Would you buy a product that solves this?'. Share on Facebook groups, Reddit, and LinkedIn. Aim for 50 responses. Analyze results to see if people actually want your solution. You'll know if your idea has market demand."
+            else:
+                return f"Research 5 direct competitors on Google. For each competitor: 1) Visit their website, 2) Note their pricing, 3) Read 10 customer reviews on Google/Yelp, 4) Check their social media (followers, engagement), 5) Identify what they do well and poorly. Create a simple spreadsheet with: Company name, Price, Strengths, Weaknesses, Customer complaints. You'll understand your competitive landscape and find opportunities."
+        
+        # Language learning descriptions
+        elif any(word in title.lower() for word in ['vocabulary', 'language', 'learn', 'practice', 'study']):
+            if 'vocabulary' in title.lower():
+                return f"Learn 10 new words using spaced repetition. Open Anki or Quizlet, create flashcards for: {goal.lower()} words. For each word: 1) Read the word aloud 3 times, 2) Look at the English meaning, 3) Cover the English and try to remember, 4) Write the word 3 times, 5) Use it in a simple sentence. Review all 10 words at the end. You'll know 10 new words and can use them in basic sentences."
+            elif 'practice' in title.lower():
+                return f"Practice speaking using HelloTalk or Tandem app. Find a native speaker learning English. Send them a voice message introducing yourself and asking about their day. Listen to their response and try to understand. Ask 3 follow-up questions. Practice for {minutes} minutes total. You'll improve your speaking confidence and pronunciation."
+            else:
+                return f"Complete a lesson on Duolingo or Babbel. Focus on {goal.lower()} vocabulary and grammar. Complete 1 full lesson (about {minutes} minutes). After each exercise, write down 3 new words you learned. Practice saying them aloud 5 times each. You'll build your {goal.lower()} foundation and vocabulary."
+        
+        # Fitness descriptions
+        elif any(word in title.lower() for word in ['workout', 'exercise', 'run', 'cardio', 'strength', 'fitness']):
+            if 'run' in title.lower() or 'cardio' in title.lower():
+                return f"Run {minutes//10} minutes at conversational pace. Start with 5-minute walking warm-up. Run at a pace where you can talk in full sentences (not gasping). If you need to walk, that's fine - aim for {minutes} minutes total movement. Cool down with 5 minutes walking. Focus on steady breathing: inhale for 3 steps, exhale for 3 steps. You'll build endurance and feel energized."
+            elif 'strength' in title.lower():
+                return f"Complete a {minutes}-minute bodyweight workout. Do: 1) 10 push-ups, 2) 15 squats, 3) 10 lunges each leg, 4) 30-second plank, 5) 10 tricep dips. Rest 1 minute between exercises. Repeat the circuit 2-3 times. Focus on proper form over speed. You'll build strength and muscle tone."
+            else:
+                return f"Complete a {minutes}-minute workout using YouTube. Search 'beginner workout {minutes} minutes'. Choose a video with good reviews. Follow along with the instructor. Modify exercises if needed. Focus on moving your body and having fun. You'll get a complete workout and feel accomplished."
+        
+        # Writing descriptions
+        elif any(word in title.lower() for word in ['write', 'blog', 'article', 'content', 'journal']):
+            return f"Write a {minutes*10}-word article about {goal.lower()}. Start with: 1) Write 3 main points you want to cover, 2) Write an opening paragraph that hooks the reader, 3) Write one paragraph for each main point with a personal example, 4) Write a conclusion that summarizes your key message. Use simple, clear language. You'll have a complete article that shares your knowledge."
+        
+        # Music descriptions
+        elif any(word in title.lower() for word in ['guitar', 'piano', 'music', 'practice', 'learn']):
+            return f"Learn to play a simple song on your instrument. Find the chords/notes online for 'Happy Birthday' or 'Twinkle Twinkle'. Practice each chord/note: place your fingers correctly, play once, hold for 2 seconds. Then practice the progression slowly. Play the whole song 3 times. Focus on clean notes and steady rhythm. You'll be able to play a real song."
+        
+        # Cooking descriptions
+        elif any(word in title.lower() for word in ['cook', 'meal', 'recipe', 'kitchen']):
+            return f"Make a simple, healthy meal. Choose a recipe from AllRecipes.com or Food.com. Gather all ingredients first. Follow the recipe step-by-step. Take your time and focus on one step at a time. Taste as you go and adjust seasoning. You'll have a homemade meal and learn cooking skills."
+        
+        # Default fallback
+        else:
+            return f"Complete this {title.lower()} activity. Break it into 3 parts: 1) Preparation (5 minutes) - gather what you need, 2) Main activity ({minutes-10} minutes) - do the core work, 3) Review (5 minutes) - check your progress and plan next steps. Focus on one part at a time. You'll make steady progress toward {goal.lower()}."
 
     def choose_today_steps(self, context: dict, user_email: str = None) -> dict:
         try:
