@@ -344,11 +344,18 @@ if goal_title and success_metric and starting_point and weekly_time:
         with st.spinner("🤖 Generating your personalized plan..."):
             try:
                 plan = ai.generate_goal_plan(plan_data, user_email)
+                st.write("🔍 Debug: Plan generation completed")
+                st.write(f"🔍 Debug: Plan keys: {list(plan.keys()) if plan else 'None'}")
+                st.write(f"🔍 Debug: Milestones count: {len(plan.get('milestones', [])) if plan else 0}")
+                st.write(f"🔍 Debug: Steps count: {len(plan.get('steps', [])) if plan else 0}")
+                
                 if not plan or not plan.get("milestones"):
                     st.error("❌ Failed to generate plan. Please check your API key and try again.")
+                    st.write(f"🔍 Debug: Plan is None or has no milestones")
                     st.stop()
             except Exception as e:
                 st.error(f"❌ Error generating plan: {str(e)}")
+                st.write(f"🔍 Debug: Exception details: {type(e).__name__}: {str(e)}")
                 st.stop()
         
         db.save_milestones(goal_id, plan.get("milestones", []))
@@ -359,13 +366,22 @@ if goal_title and success_metric and starting_point and weekly_time:
         st.session_state.generated_plan = plan
         st.session_state.goal_id = goal_id
         
+        st.write("🔍 Debug: Session state set")
+        st.write(f"🔍 Debug: plan_generated = {st.session_state.get('plan_generated')}")
+        st.write(f"🔍 Debug: goal_id = {st.session_state.get('goal_id')}")
+        
         st.success("🎉 Plan generated successfully!")
         st.rerun()
 
 # Show plan if it was generated
+st.write(f"🔍 Debug: Checking session state - plan_generated = {st.session_state.get('plan_generated', False)}")
+
 if st.session_state.get("plan_generated", False):
     plan = st.session_state.get("generated_plan", {})
     goal_id = st.session_state.get("goal_id")
+    
+    st.write("🔍 Debug: Plan display section reached")
+    st.write(f"🔍 Debug: Plan data: {list(plan.keys()) if plan else 'None'}")
     
     # Display the generated plan
     st.subheader("📋 Your Generated Plan")
