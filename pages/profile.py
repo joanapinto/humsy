@@ -338,5 +338,32 @@ def main():
         - **Exclusive insights** into the development process
         """)
 
+    # Reset Profile Section
+    st.markdown("---")
+    st.subheader("⚠️ Reset Your Profile")
+    st.warning("⚠️ **Warning:** This will permanently delete all your saved profile data, goals, and plans. This action cannot be undone.")
+    
+    col1, col2 = st.columns([2, 1])
+    with col1:
+        st.write("**What gets deleted:**")
+        st.write("• Your onboarding answers")
+        st.write("• Your active goal and plan")
+        st.write("• All milestones and action steps")
+        st.write("• Your mood tracking data")
+        st.write("• All progress history")
+    
+    with col2:
+        confirm_reset = st.checkbox("I understand this will delete all my data permanently.")
+        
+        if confirm_reset:
+            if st.button("❌ Reset My Profile", type="secondary"):
+                # Import the reset function
+                from data.storage import reset_user_profile
+                reset_user_profile()
+                st.success("✅ Profile reset successfully. Redirecting...")
+                st.rerun()
+        else:
+            st.info("Check the box to enable the reset button.")
+
 if __name__ == "__main__":
     main()

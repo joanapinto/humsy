@@ -299,21 +299,46 @@ if steps:
                 day_steps = [s for s in steps if s['suggested_day'] == day]
                 if day_steps:
                     for step in day_steps:
-                        milestone_title = next((m['title'] for m in milestones if m['id'] == step['milestone_id']), 'Unknown')
                         st.write(f"• **{step['title']}**")
-                        st.write(f"  {step['estimate_minutes']} min")
-                        st.write(f"  *{milestone_title}*")
-                        # Show clean description preview in weekly view
-                        description = step.get('description', '')
-                        if description:
-                            # Clean up the description for preview
-                            clean_preview = description.replace('EXACTLY: ', '').replace(' - Break this down into specific, actionable steps.', '')
-                            # Get just the main instruction part
-                            main_part = clean_preview.split('. ')[0]
-                            st.write(f"  📋 {main_part[:80]}...")
+                        st.write(f"  ⏱️ {step['estimate_minutes']} min")
                         st.write("---")
                 else:
                     st.write("*No activities scheduled*")
+    
+    # Show detailed activity explanations below
+    st.markdown("---")
+    st.markdown("## 📋 Activity Guide")
+    st.info("💡 **Below are detailed explanations of each activity with practical steps you can take.**")
+    
+    # Group all steps and show their detailed explanations
+    all_activities = {}
+    for step in steps:
+        activity_name = step['title']
+        if activity_name not in all_activities:
+            all_activities[activity_name] = {
+                'description': step.get('description', ''),
+                'estimated_time': step['estimate_minutes'],
+                'days': []
+            }
+        all_activities[activity_name]['days'].append(step['suggested_day'])
+    
+    for activity_name, details in all_activities.items():
+        with st.expander(f"📌 {activity_name} ({details['estimated_time']} min)"):
+            # Show which days this activity is scheduled
+            days_str = ", ".join(details['days'])
+            st.write(f"**📅 Scheduled on:** {days_str}")
+            st.write(f"**⏱️ Time needed:** {details['estimated_time']} minutes")
+            
+            # Show the detailed description
+            description = details['description']
+            if description:
+                # Clean up the description
+                clean_description = description.replace('EXACTLY: ', '').replace(' - Break this down into specific, actionable steps.', '')
+                st.write("**📋 How to do this:**")
+                st.write(clean_description)
+            else:
+                st.write("**📋 How to do this:**")
+                st.write("Detailed instructions will be provided when you start this activity.")
     
     # Show all steps in a summary table
     st.markdown("## 📋 All Action Steps")

@@ -442,16 +442,3 @@ else:
 # Additional profile information is now integrated into the main onboarding flow above
 # No need for duplicate questions
 
-# 🚨 Reset Button with Confirmation
-st.markdown("---")
-st.subheader("⚠️ Reset your profile")
-
-confirm_reset = st.checkbox("I understand this will delete all my saved profile data.")
-
-if confirm_reset:
-    if st.button("❌ Reset My Profile"):
-        reset_user_profile()
-        st.success("✅ Profile reset successfully. Redirecting...")
-        st.rerun()
-else:
-    st.warning("Tick the box above to enable the reset button.")
