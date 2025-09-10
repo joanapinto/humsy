@@ -89,11 +89,16 @@ class SupabaseManager:
             )
             
             st.write(f"🔍 Response status: {response.status_code}")
+            st.write(f"🔍 Response headers: {dict(response.headers)}")
             st.write(f"🔍 Response text: {response.text}")
             
             if response.status_code == 201:
-                result = response.json()
-                return result[0]['id']
+                try:
+                    result = response.json()
+                    return result[0]['id']
+                except Exception as json_error:
+                    st.write(f"🔍 JSON decode error: {json_error}")
+                    raise Exception(f"Failed to parse JSON response: {response.text}")
             else:
                 raise Exception(f"Failed to create goal: {response.text}")
                 
