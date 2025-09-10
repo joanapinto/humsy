@@ -373,6 +373,18 @@ class SupabaseManager:
             if not self.supabase_url or not self.supabase_key:
                 raise Exception("Supabase URL or key not configured")
             
+            # Convert energy level string to integer
+            energy_level = checkin_data.get('energy_level')
+            if isinstance(energy_level, str):
+                energy_mapping = {
+                    "Very low": 1,
+                    "Low": 2, 
+                    "Moderate": 3,
+                    "Good": 4,
+                    "High": 5
+                }
+                energy_level = energy_mapping.get(energy_level, 3)  # Default to 3 if not found
+
             data = {
                 "user_email": user_email,
                 "goal_id": checkin_data.get('goal_id'),
@@ -380,7 +392,7 @@ class SupabaseManager:
                 "skipped_steps": checkin_data.get('skipped_steps'),
                 "notes": checkin_data.get('notes'),
                 "mood": checkin_data.get('mood'),
-                "energy_level": checkin_data.get('energy_level')
+                "energy_level": energy_level
             }
             
             response = requests.post(
@@ -413,7 +425,19 @@ class SupabaseManager:
             )
             
             if response.status_code == 200:
-                return response.json()
+                checkins = response.json()
+                # Convert energy level integers back to strings
+                energy_mapping = {
+                    1: "Very low",
+                    2: "Low",
+                    3: "Moderate", 
+                    4: "Good",
+                    5: "High"
+                }
+                for checkin in checkins:
+                    if 'energy_level' in checkin and isinstance(checkin['energy_level'], int):
+                        checkin['energy_level'] = energy_mapping.get(checkin['energy_level'], "Moderate")
+                return checkins
             else:
                 raise Exception(f"Failed to get check-ins: {response.text}")
                 
