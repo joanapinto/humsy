@@ -60,8 +60,6 @@ st.title("🧠 Welcome to Your Humsy")
 st.success("🎉 **Welcome to Humsy Beta!**")
 st.info("💡 **Pro Tip:** Take your time with these questions - they help the AI provide personalized insights!")
 
-# Database status message
-st.success("✅ **Database Connected:** Your plans will be saved permanently!")
 
 # Load existing profile if available
 existing_profile = load_user_profile()
