@@ -222,12 +222,17 @@ if steps:
 st.markdown("## 🎯 Your Personalized Plan")
 if milestones:
     for i, milestone in enumerate(milestones):
-        with st.expander(f"**{milestone['seq']}. {milestone['title']}** - Due: {milestone['target_date']}", expanded=(i==0)):
+        # Handle missing seq column - use index + 1 as fallback
+        seq_num = milestone.get('seq', i + 1)
+        target_date = milestone.get('target_date', 'No date set')
+        status = milestone.get('status', 'pending')
+        
+        with st.expander(f"**{seq_num}. {milestone['title']}** - Due: {target_date}", expanded=(i==0)):
             st.write(f"**Description:** {milestone.get('description', 'No description available')}")
-            st.write(f"**Status:** {milestone['status'].title()}")
+            st.write(f"**Status:** {status.title()}")
             
-            # Show steps for this milestone
-            milestone_steps = [s for s in steps if s['milestone_id'] == milestone['id']]
+            # Show steps for this milestone - handle missing milestone_id column
+            milestone_steps = [s for s in steps if s.get('milestone_id') == milestone['id']]
             if milestone_steps:
                 st.write("**Steps:**")
                 for step in milestone_steps:
@@ -344,13 +349,38 @@ if steps:
     
     # Show all steps in a summary table
     st.markdown("## 📋 All Action Steps")
-    dfs = pd.DataFrame(steps)[["title","milestone_id","estimate_minutes","suggested_day","due_date","status"]]
-    # Map milestone_id to milestone title for better readability
-    milestone_map = {m['id']: m['title'] for m in milestones}
-    dfs['milestone_title'] = dfs['milestone_id'].map(milestone_map)
-    dfs = dfs[["title","milestone_title","estimate_minutes","suggested_day","due_date","status"]]
-    dfs.columns = ["Step", "Milestone", "Duration", "Day", "Due Date", "Status"]
-    st.dataframe(dfs, hide_index=True, use_container_width=True)
+    if steps:
+        # Create DataFrame with available columns only
+        df_steps = pd.DataFrame(steps)
+        available_columns = []
+        required_columns = ["title", "milestone_id", "estimate_minutes", "suggested_day", "due_date", "status"]
+        
+        for col in required_columns:
+            if col in df_steps.columns:
+                available_columns.append(col)
+        
+        if available_columns:
+            dfs = df_steps[available_columns]
+        else:
+            dfs = df_steps[["title"]]  # Fallback to just title
+        
+        # Map milestone_id to milestone title for better readability (if milestone_id exists)
+        if "milestone_id" in df_steps.columns:
+            milestone_map = {m['id']: m['title'] for m in milestones}
+            dfs['milestone_title'] = dfs['milestone_id'].map(milestone_map)
+            # Reorder columns to include milestone_title
+            display_columns = ["title", "milestone_title"]
+            for col in ["estimate_minutes", "suggested_day", "due_date", "status"]:
+                if col in dfs.columns:
+                    display_columns.append(col)
+            dfs = dfs[display_columns]
+            dfs.columns = ["Step", "Milestone"] + [col.replace("_", " ").title() for col in display_columns[2:]]
+        else:
+            # No milestone_id, just show available columns
+            column_names = ["Step"] + [col.replace("_", " ").title() for col in available_columns[1:]]
+            dfs.columns = column_names
+        
+        st.dataframe(dfs, hide_index=True, use_container_width=True)
 else:
     st.info("No steps yet. Complete onboarding to generate your personalized plan.")
 

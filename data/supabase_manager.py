@@ -217,7 +217,7 @@ class SupabaseManager:
                 headers=self.headers,
                 params={
                     "goal_id": f"eq.{goal_id}",
-                    "order": "seq.asc"
+                    "order": "id.asc"  # Fallback to id ordering if seq doesn't exist
                 }
             )
             
