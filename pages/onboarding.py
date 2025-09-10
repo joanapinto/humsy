@@ -306,26 +306,15 @@ if goal_title and success_metric and starting_point and weekly_time:
     st.write("🔍 Debug: All conditions met, showing button")
     st.write(f"🔍 Debug: goal_title='{goal_title}', success_metric='{success_metric}', starting_point='{starting_point}', weekly_time='{weekly_time}'")
     
-    st.write("### 🚀 Ready to Generate Your Plan?")
-    st.write("All required fields are filled. Click below to generate your personalized plan.")
-    
-    # Use a simple button with a unique key
-    if st.button("🚀 Generate Plan", type="primary", use_container_width=True, key="generate_plan_btn"):
-        st.write("🔍 Debug: Button clicked! Starting plan generation...")
+    # Check if button was clicked in previous run
+    if st.session_state.get("button_clicked", False):
+        st.write("🔍 Debug: Button was clicked, processing...")
         
-        # Store the button click in session state to persist across reruns
-        st.session_state.button_clicked = True
-        st.rerun()
-
-# Check if button was clicked in previous run
-if st.session_state.get("button_clicked", False):
-    st.write("🔍 Debug: Button was clicked, processing...")
-    
-    # Reset the button state
-    st.session_state.button_clicked = False
-    
-    if True:  # This will always execute when button was clicked
-        st.write("🔍 Debug: Processing plan generation...")
+        # Reset the button state
+        st.session_state.button_clicked = False
+        
+        if True:  # This will always execute when button was clicked
+            st.write("🔍 Debug: Processing plan generation...")
         
         # Test secrets availability
         try:
@@ -422,6 +411,19 @@ if st.session_state.get("button_clicked", False):
         except Exception as e:
             st.error(f"❌ Error in plan generation process: {str(e)}")
             st.write(f"🔍 Debug: Exception details: {type(e).__name__}: {str(e)}")
+    
+    # Show the button if not processing
+    if not st.session_state.get("button_clicked", False):
+        st.write("### 🚀 Ready to Generate Your Plan?")
+        st.write("All required fields are filled. Click below to generate your personalized plan.")
+        
+        # Use a simple button with a unique key
+        if st.button("🚀 Generate Plan", type="primary", use_container_width=True, key="generate_plan_btn"):
+            st.write("🔍 Debug: Button clicked! Starting plan generation...")
+            
+            # Store the button click in session state to persist across reruns
+            st.session_state.button_clicked = True
+            st.rerun()
 else:
     st.write("🔍 Debug: Button condition not met - button not shown")
 
