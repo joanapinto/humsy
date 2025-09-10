@@ -20,7 +20,7 @@ from data.storage import save_user_profile, load_user_profile, reset_user_profil
 from assistant.fallback import FallbackAssistant
 
 # Import authentication
-from auth import require_beta_access, get_user_email, logout
+from auth import require_beta_access, get_user_email, logout, get_admin_email
 
 # Set page config
 st.set_page_config(
@@ -55,236 +55,34 @@ st.markdown(hide_streamlit_navigation, unsafe_allow_html=True)
 require_beta_access()
 
 def show_onboarding_flow():
-    """Show the integrated onboarding flow with steps"""
+    """Redirect to the comprehensive onboarding page"""
     st.success("🎉 **Welcome to Humsy Beta!**")
-    st.info("💡 **Pro Tip:** Take your time with these questions - they help the AI provide personalized insights!")
+    st.info("💡 **Let's create your personalized plan!** We'll ask you 15 questions to build a comprehensive roadmap for your goals.")
     
-    # Initialize session state for onboarding
-    if "onboarding_step" not in st.session_state:
-        st.session_state.onboarding_step = 1
-    if "onboarding_data" not in st.session_state:
-        st.session_state.onboarding_data = {}
+    st.markdown("### 🎯 What to Expect:")
+    st.markdown("""
+    - **🎯 Define Your Main Goal*** - What do you want to achieve?
+    - **💭 Understand Your Why** - What drives you to pursue this goal?
+    - **📅 Set Target Date*** - When do you want to achieve it?
+    - **📊 Define Success*** - How will you know you've succeeded?
+    - **📍 Assess Starting Point*** - Where are you starting from?
+    - **⏰ Plan Weekly Time*** - How much time can you commit?
+    - **⚡ Identify Energy Patterns** - When do you have peak energy?
+    - **🚫 Set Free Days** - Which days do you want to keep free?
+    - **🎚️ Choose Intensity** - How ambitious should we start?
+    - **❤️ Map Joy Sources** - What energizes and motivates you?
+    - **🌧️ Identify Energy Drainers** - What tends to bring you down?
+    - **👥 Professional Support** - Are you working with a therapist/coach?
+    - **🚧 Anticipate Obstacles** - What might get in your way?
+    - **🛠️ List Resources** - What tools and resources do you have?
+    - **🔔 Set Reminders** - How often do you want check-in reminders?
+    - **🤖 Generate Plan** - Create your personalized roadmap
+    """)
     
-    # Progress indicator
-    progress = st.session_state.onboarding_step / 3
-    st.progress(progress)
-    st.caption(f"Step {st.session_state.onboarding_step} of 3")
+    st.markdown("*Fields marked with * are mandatory*")
     
-    # Step 1: Goals and Energy Sources
-    if st.session_state.onboarding_step == 1:
-        st.subheader("🎯 Step 1: Your Goals & Energy")
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.markdown("#### 🎯 What's your main focus?")
-            goal = st.text_area(
-                "What's one area of your life you'd like more support with right now?",
-                value=st.session_state.onboarding_data.get("goal", ""),
-                placeholder="e.g., staying focused, managing emotions, building routines…",
-                help="This helps us tailor your experience",
-                key="goal_step1"
-            )
-            
-            st.markdown("#### ❤️ What brings you joy?")
-            joy_options = ["Friends", "Movement", "Creating", "Helping others", "Nature", "Rest", "Learning", "Other"]
-            joy_sources = st.multiselect(
-                "What brings you joy or gives you energy lately?",
-                options=joy_options,
-                default=st.session_state.onboarding_data.get("joy_sources", []),
-                key="joy_step1"
-            )
-            
-            if "Other" in joy_sources:
-                joy_other = st.text_area(
-                    "Tell us more about what brings you joy!",
-                    value=st.session_state.onboarding_data.get("joy_other", ""),
-                    placeholder="Write what brings you joy…",
-                    key="joy_other_step1"
-                )
-            else:
-                joy_other = ""
-        
-        with col2:
-            st.markdown("#### 🌧️ What drains your energy?")
-            drainer_options = ["Overwhelm", "Lack of sleep", "Isolation", "Criticism", "Deadlines", "Other"]
-            energy_drainers = st.multiselect(
-                "What tends to bring you down or drain your energy?",
-                options=drainer_options,
-                default=st.session_state.onboarding_data.get("energy_drainers", []),
-                key="drainers_step1"
-            )
-            
-            if "Other" in energy_drainers:
-                energy_drainer_other = st.text_area(
-                    "Tell us more about what drains your energy!",
-                    value=st.session_state.onboarding_data.get("energy_drainer_other", ""),
-                    placeholder="Write what brings you down or drains your energy…",
-                    key="drainer_other_step1"
-                )
-            else:
-                energy_drainer_other = ""
-            
-            st.markdown("#### 💬 Professional support")
-            therapy_coaching = st.selectbox(
-                "Are you currently working with a therapist, coach, or mentor?",
-                options=["No", "Yes", "I'd like to find one"],
-                index=["No", "Yes", "I'd like to find one"].index(st.session_state.onboarding_data.get("therapy_coaching", "No")),
-                key="therapy_step1"
-            )
-        
-        # Save step 1 data
-        st.session_state.onboarding_data.update({
-            "goal": goal,
-            "joy_sources": joy_sources,
-            "joy_other": joy_other,
-            "energy_drainers": energy_drainers,
-            "energy_drainer_other": energy_drainer_other,
-            "therapy_coaching": therapy_coaching
-        })
-        
-        col1, col2, col3 = st.columns([1, 1, 1])
-        with col3:
-            if st.button("Next Step →", type="primary", use_container_width=True):
-                if goal.strip():  # Basic validation
-                    st.session_state.onboarding_step = 2
-                    st.rerun()
-                else:
-                    st.error("Please tell us about your main focus area!")
-    
-    # Step 2: Time, Energy & Situation
-    elif st.session_state.onboarding_step == 2:
-        st.subheader("⏱️ Step 2: Your Time & Situation")
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.markdown("#### ⏱️ Time availability")
-            availability = st.selectbox(
-                "On most weekdays, how much time do you feel you can dedicate to yourself or your goals?",
-                options=["< 1 hour", "1–2 hours", "2–4 hours", "4+ hours"],
-                index=["< 1 hour", "1–2 hours", "2–4 hours", "4+ hours"].index(st.session_state.onboarding_data.get("availability", "1–2 hours")),
-                key="availability_step2"
-            )
-            
-            st.markdown("#### ⚡ Energy levels")
-            energy = st.selectbox(
-                "How would you describe your energy levels lately?",
-                options=["Low", "Okay", "Good", "High"],
-                index=["Low", "Okay", "Good", "High"].index(st.session_state.onboarding_data.get("energy", "Okay")),
-                key="energy_step2"
-            )
-            
-            st.markdown("#### 🧠 Emotional patterns")
-            emotional_patterns = st.selectbox(
-                "How well do you understand your emotional patterns?",
-                options=["Not sure yet", "Somewhat", "Pretty well", "Very well"],
-                index=["Not sure yet", "Somewhat", "Pretty well", "Very well"].index(st.session_state.onboarding_data.get("emotional_patterns", "Not sure yet")),
-                key="patterns_step2"
-            )
-        
-        with col2:
-            st.markdown("#### 🏠 Your situation")
-            situation_options = ["Student", "Freelancer", "Employee", "Parent", "Entrepreneur", "Other"]
-            situation = st.selectbox(
-                "What best describes your current situation?",
-                options=situation_options,
-                index=situation_options.index(st.session_state.onboarding_data.get("situation", "Freelancer")),
-                key="situation_step2"
-            )
-            
-            if situation == "Other":
-                situation_other = st.text_area(
-                    "Tell us more about your situation",
-                    value=st.session_state.onboarding_data.get("situation_other", ""),
-                    placeholder="Describe your situation…",
-                    key="situation_other_step2"
-                )
-            else:
-                situation_other = ""
-            
-            st.markdown("#### 🎯 Small habit goal")
-            small_habit = st.text_area(
-                "What's one small habit you'd like to build or maintain?",
-                value=st.session_state.onboarding_data.get("small_habit", ""),
-                placeholder="e.g., daily meditation, morning walk, journaling…",
-                key="habit_step2"
-            )
-        
-        # Save step 2 data
-        st.session_state.onboarding_data.update({
-            "availability": availability,
-            "energy": energy,
-            "emotional_patterns": emotional_patterns,
-            "situation": situation,
-            "situation_other": situation_other,
-            "small_habit": small_habit
-        })
-        
-        col1, col2, col3 = st.columns([1, 1, 1])
-        with col1:
-            if st.button("← Previous", use_container_width=True):
-                st.session_state.onboarding_step = 1
-                st.rerun()
-        with col3:
-            if st.button("Next Step →", type="primary", use_container_width=True):
-                st.session_state.onboarding_step = 3
-                st.rerun()
-    
-    # Step 3: Preferences & Completion
-    elif st.session_state.onboarding_step == 3:
-        st.subheader("🎨 Step 3: Your Preferences")
-        
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.markdown("#### 💬 Communication style")
-            tone = st.selectbox(
-                "How would you like your assistant to communicate with you?",
-                options=["Gentle & Supportive", "Direct & Practical", "Encouraging & Motivational", "Calm & Analytical"],
-                index=["Gentle & Supportive", "Direct & Practical", "Encouraging & Motivational", "Calm & Analytical"].index(st.session_state.onboarding_data.get("tone", "Gentle & Supportive")),
-                key="tone_step3"
-            )
-            
-            st.markdown("#### 🔔 Reminders")
-            reminders = st.selectbox(
-                "Would you like gentle reminders to check in?",
-                options=["Yes", "No"],
-                index=["Yes", "No"].index(st.session_state.onboarding_data.get("reminders", "Yes")),
-                key="reminders_step3"
-            )
-        
-        with col2:
-            st.markdown("#### 📋 Review your profile")
-            st.info("**Your main focus:** " + st.session_state.onboarding_data.get("goal", ""))
-            st.info("**Your energy sources:** " + ", ".join(st.session_state.onboarding_data.get("joy_sources", [])))
-            st.info("**Your situation:** " + st.session_state.onboarding_data.get("situation", ""))
-            st.info("**Communication style:** " + st.session_state.onboarding_data.get("tone", ""))
-        
-        # Save step 3 data
-        st.session_state.onboarding_data.update({
-            "tone": tone,
-            "reminders": reminders
-        })
-        
-        col1, col2, col3 = st.columns([1, 1, 1])
-        with col1:
-            if st.button("← Previous", use_container_width=True):
-                st.session_state.onboarding_step = 2
-                st.rerun()
-        with col3:
-            if st.button("🚀 Complete Setup", type="primary", use_container_width=True):
-                # Save the complete profile
-                profile_data = st.session_state.onboarding_data.copy()
-                save_user_profile(profile_data)
-                
-                # Clear onboarding state
-                del st.session_state.onboarding_step
-                del st.session_state.onboarding_data
-                
-                st.success("🎉 **Welcome to Humsy!** Your profile has been set up successfully!")
-                st.balloons()
-                st.rerun()
+    if st.button("🚀 Start Comprehensive Onboarding", type="primary", use_container_width=True):
+        st.switch_page("pages/onboarding.py")
 
 # Main app logic
 def main():
@@ -299,11 +97,11 @@ def main():
         if st.button("👤 Profile", use_container_width=True):
             st.switch_page("pages/profile.py")
         
+        if st.button("🗺️ Plan", use_container_width=True):
+            st.switch_page("pages/plan.py")
+        
         if st.button("📝 Daily Check-in", use_container_width=True):
             st.switch_page("pages/daily_checkin.py")
-        
-        if st.button("😊 Mood Tracker", use_container_width=True):
-            st.switch_page("pages/mood_tracker.py")
         
         if st.button("🌱 Weekly Reflection", use_container_width=True):
             st.switch_page("pages/reflection.py")
@@ -327,7 +125,8 @@ def main():
         
         # Admin insights access
         user_email = get_user_email()
-        if user_email == "joanapnpinto@gmail.com":
+        admin_email = get_admin_email()
+        if user_email == admin_email:
             st.subheader("🔓 Admin Tools")
             if st.button("📊 Database Insights", use_container_width=True):
                 st.switch_page("pages/insights.py")
@@ -343,13 +142,19 @@ def main():
     # Check if user has completed onboarding
     user_profile = load_user_profile()
     
-    # If no profile exists, show onboarding flow
-    if not user_profile:
+    # Also check if user has an active goal (new onboarding system)
+    from data.database import DatabaseManager
+    db = DatabaseManager()
+    user_email = get_user_email() or "me@example.com"
+    active_goal = db.get_active_goal(user_email)
+    
+    # If no profile AND no active goal exists, show onboarding flow
+    if not user_profile and not active_goal:
         show_onboarding_flow()
         return
     
     # Beta tester welcome message
-    if user_profile:
+    if user_profile or active_goal:
         # Check if this is a new user (first time seeing the welcome)
         if "beta_welcome_shown" not in st.session_state:
             st.session_state.beta_welcome_shown = True
@@ -437,7 +242,7 @@ def main():
     else:
         st.write("Welcome to your personal focus assistant!")
     
-    # User profile exists, show main app
+    # User profile or active goal exists, show main app
     # Load user data for assistant
     mood_data = load_mood_data()
     checkin_data = load_checkin_data()
@@ -452,10 +257,20 @@ def main():
     # User goal and progress
     col1, col2 = st.columns([2, 1])
     with col1:
-        current_goal = user_profile.get('goal', 'Not set')
-        st.write(f"**Your Goal:** {current_goal}")
-        if st.button("✏️ Want to change?", use_container_width=True):
-            st.switch_page("pages/profile.py")
+        if active_goal:
+            current_goal = active_goal.get('title', 'Not set')
+            st.write(f"**Your Goal:** {current_goal}")
+            if st.button("✏️ Want to change?", use_container_width=True):
+                st.switch_page("pages/profile.py")
+        elif user_profile:
+            current_goal = user_profile.get('goal', 'Not set')
+            st.write(f"**Your Goal:** {current_goal}")
+            if st.button("✏️ Want to change?", use_container_width=True):
+                st.switch_page("pages/profile.py")
+        else:
+            st.write("**Your Goal:** Not set")
+            if st.button("✏️ Set your goal?", use_container_width=True):
+                st.switch_page("pages/onboarding.py")
     with col2:
         # Calculate weekly consistency
         week_checkins = [c for c in checkin_data if (datetime.now() - datetime.fromisoformat(c['timestamp'])).days <= 7]
@@ -587,8 +402,8 @@ def main():
             display_gpt_quota_badge(user_email)
             
             # Admin check for insights access
-            ADMIN_EMAIL = "joanapnpinto@gmail.com"
-            if user_email == ADMIN_EMAIL:
+            admin_email = get_admin_email()
+            if user_email == admin_email:
                 st.success("🔓 **Admin Access**: You can access Database Insights from the sidebar or navigation.")
             else:
                 st.info("🔒 **Beta Testing**: Database Insights are admin-only during beta testing.")

@@ -31,6 +31,25 @@ def load_whitelist():
         # If secrets are not configured or there's an error, return empty list (no access)
         return []
 
+def get_admin_email():
+    """Get the admin email from Streamlit secrets"""
+    try:
+        # First try to get admin_email from secrets
+        admin_email = st.secrets.get("admin_email", "")
+        if admin_email:
+            return admin_email.strip().lower()
+        
+        # Fallback: use the first email in allowed_emails as admin
+        allowed_emails = load_whitelist()
+        if allowed_emails:
+            return allowed_emails[0]
+        
+        # Final fallback for development
+        return "joanapnpinto@gmail.com"
+    except Exception:
+        # Fallback for development
+        return "joanapnpinto@gmail.com"
+
 def save_user_session(email: str, remember_me: bool = False):
     """Save user session data"""
     session_data = {

@@ -25,10 +25,11 @@ def main():
     args = parser.parse_args()
     
     # Restrict access to admin email only
-    ADMIN_EMAIL = "joanapnpinto@gmail.com"
+    from auth import get_admin_email
+    admin_email = get_admin_email()
     
     # Check if user is trying to access insights
-    if args.user and args.user != ADMIN_EMAIL:
+    if args.user and args.user != admin_email:
         print("🔒 Access Restricted: Database insights are only available to administrators during beta testing.")
         return
     

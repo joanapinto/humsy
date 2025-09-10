@@ -15,6 +15,7 @@ project_root = current_file.parent.parent
 sys.path.insert(0, str(project_root))
 
 from data.storage import load_user_profile, load_checkin_data, load_mood_data
+from data.database import DatabaseManager
 from data.insights import DatabaseInsights
 from assistant.ai_service import AIService
 from assistant.fallback import FallbackAssistant
@@ -47,7 +48,9 @@ hide_streamlit_navigation = """
 """
 st.markdown(hide_streamlit_navigation, unsafe_allow_html=True)
 
-# Custom navigation sidebar
+# Standard navigation sidebar
+from shared_sidebar import show_standard_sidebar
+show_standard_sidebar()
 with st.sidebar:
     st.subheader("🧭 Navigation")
     
@@ -71,7 +74,9 @@ with st.sidebar:
     
     # Admin insights access
     user_email = get_user_email()
-    if user_email == "joanapnpinto@gmail.com":
+    from auth import get_admin_email
+    admin_email = get_admin_email()
+    if user_email == admin_email:
         st.subheader("🔓 Admin Tools")
         if st.button("📊 Database Insights", use_container_width=True):
             st.switch_page("pages/insights.py")
@@ -262,7 +267,12 @@ def main():
     
     # Load user data
     user_profile = load_user_profile(user_email)
-    if not user_profile:
+    
+    # Also check if user has an active goal (new onboarding system)
+    db = DatabaseManager()
+    active_goal = db.get_active_goal(user_email)
+    
+    if not user_profile and not active_goal:
         st.warning("Please complete onboarding first!")
         if st.button("🚀 Go to Onboarding", use_container_width=True):
             st.switch_page("pages/onboarding.py")

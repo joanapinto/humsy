@@ -14,6 +14,7 @@ project_root = current_file.parent.parent
 sys.path.insert(0, str(project_root))
 
 from data.storage import load_user_profile, load_mood_data, load_checkin_data
+from data.database import DatabaseManager
 from assistant.logic import FocusAssistant
 from assistant.fallback import FallbackAssistant
 from auth import require_beta_access, get_user_email
@@ -41,56 +42,9 @@ hide_streamlit_navigation = """
 """
 st.markdown(hide_streamlit_navigation, unsafe_allow_html=True)
 
-# Custom navigation sidebar
-with st.sidebar:
-    st.subheader("🧭 Navigation")
-    
-    # Main pages
-    if st.button("🏠 Home", use_container_width=True):
-        st.switch_page("app.py")
-    
-    if st.button("👤 Profile", use_container_width=True):
-        st.switch_page("pages/profile.py")
-    
-    if st.button("📝 Daily Check-in", use_container_width=True):
-        st.switch_page("pages/daily_checkin.py")
-    
-    if st.button("😊 Mood Tracker", use_container_width=True):
-        st.switch_page("pages/mood_tracker.py")
-    
-    if st.button("🌱 Weekly Reflection", use_container_width=True):
-        st.switch_page("pages/reflection.py")
-    
-    if st.button("📊 Insights", use_container_width=True):
-        st.switch_page("pages/history.py")
-    
-    st.write("---")
-    
-    # Feedback section
-    st.subheader("💬 Feedback")
-    if st.button("📝 Give Feedback", use_container_width=True):
-        st.markdown("**[📋 Open Feedback Form](https://tally.so/r/mBr11Q)**")
-        st.info("Your feedback helps us make Humsy better for everyone! 🚀")
-    
-    if st.button("🐛 Report Bug", use_container_width=True):
-        st.markdown("**[🐛 Open Bug Report Form](https://tally.so/r/waR7Eq)**")
-        st.info("🐛 **Bug Report**\n\nPlease detail step by step how to reproduce the bug. Include:\n- What you were trying to do\n- What happened instead\n- Steps to reproduce")
-    
-    st.write("---")
-    
-    # Admin insights access
-    user_email = get_user_email()
-    if user_email == "joanapnpinto@gmail.com":
-        st.subheader("🔓 Admin Tools")
-        if st.button("📊 Database Insights", use_container_width=True):
-            st.switch_page("pages/insights.py")
-    
-    st.write("---")
-    
-    # Logout
-    if st.button("🚪 Logout", use_container_width=True):
-        from auth import logout
-        logout()
+# Standard navigation sidebar
+from shared_sidebar import show_standard_sidebar
+show_standard_sidebar()
 
 # Require beta access
 require_beta_access()
@@ -102,7 +56,12 @@ user_profile = load_user_profile()
 mood_data = load_mood_data()
 checkin_data = load_checkin_data()
 
-if not user_profile:
+# Also check if user has an active goal (new onboarding system)
+db = DatabaseManager()
+user_email = get_user_email() or "me@example.com"
+active_goal = db.get_active_goal(user_email)
+
+if not user_profile and not active_goal:
     st.warning("Please complete onboarding first!")
     if st.button("🚀 Go to Onboarding", use_container_width=True):
         st.switch_page("pages/onboarding.py")
@@ -111,38 +70,28 @@ else:
     assistant = FocusAssistant(user_profile, mood_data, checkin_data)
     fallback_assistant = FallbackAssistant(user_profile, mood_data, checkin_data)
     
-    # Sidebar for navigation and filters
-    st.sidebar.title("🎛️ Analytics Dashboard")
-    
-    # Time period filter
-    time_period = st.sidebar.selectbox(
-        "📅 Time Period",
-        ["Last 7 days", "Last 30 days", "Last 90 days", "All time"],
-        index=0
-    )
-    
-    # Data type filter
-    data_type = st.sidebar.multiselect(
-        "📊 Data Types",
-        ["Mood Tracking", "Daily Check-ins", "Sleep Quality", "Energy Levels", "Focus Goals"],
-        default=["Mood Tracking", "Daily Check-ins"]
-    )
-    
-    # Quick stats in sidebar
-    st.sidebar.markdown("---")
-    st.sidebar.subheader("📈 Quick Stats")
-    
-    if mood_data:
-        total_mood_entries = len(mood_data)
-        st.sidebar.metric("Mood Entries", total_mood_entries)
-        
+    # Analytics filters in main content area
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        time_period = st.selectbox(
+            "📅 Time Period",
+            ["Last 7 days", "Last 30 days", "Last 90 days", "All time"],
+            index=0
+        )
+    with col2:
+        data_type = st.multiselect(
+            "📊 Data Types",
+            ["Mood Tracking", "Daily Check-ins", "Sleep Quality", "Energy Levels", "Focus Goals"],
+            default=["Mood Tracking", "Daily Check-ins"]
+        )
+    with col3:
+        # Quick stats
         if mood_data:
-            avg_intensity = sum(entry.get('intensity', 0) for entry in mood_data) / len(mood_data)
-            st.sidebar.metric("Avg Mood Intensity", f"{avg_intensity:.1f}/10")
-    
-    if checkin_data:
-        total_checkins = len(checkin_data)
-        st.sidebar.metric("Check-ins", total_checkins)
+            total_mood_entries = len(mood_data)
+            st.metric("Mood Entries", total_mood_entries)
+        if checkin_data:
+            total_checkins = len(checkin_data)
+            st.metric("Check-ins", total_checkins)
     
     # Main content area
     tab1, tab2, tab3, tab4 = st.tabs(["📊 Overview", "😊 Mood Analytics", "📝 Check-in History", "🎯 Insights"])
@@ -155,25 +104,41 @@ else:
         
         with col1:
             st.subheader("👤 Your Profile")
-            st.write(f"**Goal:** {user_profile.get('goal', 'Not set')}")
-            st.write(f"**Availability:** {user_profile.get('availability', 'Not set')}")
-            st.write(f"**Energy Level:** {user_profile.get('energy', 'Not set')}")
-            st.write(f"**Situation:** {user_profile.get('situation', 'Not set')}")
             
-            # Display joy sources
-            joy_sources = user_profile.get('joy_sources', [])
-            if joy_sources:
-                st.write(f"**Joy Sources:** {', '.join(joy_sources)}")
+            # Use active_goal data if available, otherwise fall back to user_profile
+            profile_data = active_goal if active_goal else user_profile
             
-            # Display energy drainers
-            energy_drainers = user_profile.get('energy_drainers', [])
-            if energy_drainers:
-                st.write(f"**Energy Drainers:** {', '.join(energy_drainers)}")
-            
-            # Display small habit if applicable
-            small_habit = user_profile.get('small_habit', '')
-            if small_habit:
-                st.write(f"**Small Habit Goal:** {small_habit}")
+            if profile_data:
+                # Goal information
+                goal = profile_data.get('title', profile_data.get('goal', 'Not set'))
+                st.write(f"**Goal:** {goal}")
+                
+                # Weekly time commitment
+                weekly_time = profile_data.get('weekly_time', 'Not set')
+                st.write(f"**Weekly Time:** {weekly_time}")
+                
+                # Energy time
+                energy_time = profile_data.get('energy_time', 'Not set')
+                st.write(f"**Peak Energy:** {energy_time}")
+                
+                # Free days
+                free_days = profile_data.get('free_days', 'Not set')
+                st.write(f"**Free Days:** {free_days}")
+                
+                # Display joy sources
+                joy_sources = profile_data.get('joy_sources', [])
+                if joy_sources:
+                    st.write(f"**Joy Sources:** {', '.join(joy_sources) if isinstance(joy_sources, list) else joy_sources}")
+                
+                # Display energy drainers
+                energy_drainers = profile_data.get('energy_drainers', [])
+                if energy_drainers:
+                    st.write(f"**Energy Drainers:** {', '.join(energy_drainers) if isinstance(energy_drainers, list) else energy_drainers}")
+            else:
+                st.write("**Goal:** Not set")
+                st.write("**Weekly Time:** Not set")
+                st.write("**Peak Energy:** Not set")
+                st.write("**Free Days:** Not set")
         
         with col2:
             st.subheader("📈 Activity Summary")
@@ -197,9 +162,22 @@ else:
             if mood_data:
                 latest_mood = mood_data[-1] if mood_data else None
                 if latest_mood:
-                    st.write(f"**Latest Mood:** {latest_mood.get('mood', 'N/A')}")
-                    st.write(f"**Intensity:** {latest_mood.get('intensity', 'N/A')}/10")
+                    # Handle multiple moods format
+                    moods = latest_mood.get('moods', [])
+                    if moods:
+                        if isinstance(moods, list):
+                            mood_display = ', '.join(moods)
+                        else:
+                            mood_display = str(moods)
+                    else:
+                        # Fallback to old single mood format
+                        mood_display = latest_mood.get('mood', 'N/A')
+                    
+                    st.write(f"**Latest Mood:** {mood_display}")
                     st.write(f"**Date:** {latest_mood.get('date', 'N/A')}")
+            else:
+                st.write("**Latest Mood:** No mood data yet")
+                st.write("**Date:** N/A")
         
         # Recent activity timeline
         st.subheader("⏰ Recent Activity Timeline")
@@ -707,7 +685,10 @@ else:
             
             # Goal progress
             st.subheader("🎯 Goal Progress")
-            st.write(f"**Your Goal:** {user_profile.get('goal', 'Not set')}")
+            # Use active_goal data if available, otherwise fall back to user_profile
+            profile_data = active_goal if active_goal else user_profile
+            goal = profile_data.get('title', profile_data.get('goal', 'Not set')) if profile_data else 'Not set'
+            st.write(f"**Your Goal:** {goal}")
             st.write(fallback_assistant.get_goal_reminder())
             
             # Productivity tips

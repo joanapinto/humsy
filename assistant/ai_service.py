@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 from .prompts import PromptTemplates
 from .usage_limiter import UsageLimiter
 from .ai_cache import ai_cache, PromptOptimizer
+import json
 
 # Load environment variables
 load_dotenv()
@@ -41,8 +42,9 @@ class AIService:
         Returns (allowed, reason)
         """
         # Admin user bypass - unlimited access for testing
-        ADMIN_EMAIL = "joanapnpinto@gmail.com"
-        if user_email == ADMIN_EMAIL:
+        from auth import get_admin_email
+        admin_email = get_admin_email()
+        if user_email == admin_email:
             return True, "Admin user - unlimited access"
         
         if not self.is_available():
@@ -653,4 +655,209 @@ IMPORTANT: Make each task specific to their stated focus. If they want to "work 
                 
         except Exception as e:
             st.error(f"Error generating AI task plan: {str(e)}")
-            return None 
+            return None
+
+    # ---- internal JSON chat helper ----
+    def _chat_json(self, prompt: str) -> dict:
+        """
+        Calls your chat model and parses JSON safely. 
+        If your project already has a 'chat' method, use it here.
+        """
+        try:
+            response = self.client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": "You are a helpful assistant that returns only valid JSON."},
+                    {"role": "user", "content": prompt}
+                ],
+                max_tokens=1000,
+                temperature=0.3
+            )
+            txt = response.choices[0].message.content.strip().strip("`")
+            # try to extract JSON if model wrapped in code fences
+            if txt.startswith("{") and txt.endswith("}"):
+                return json.loads(txt)
+            # fallback: find first JSON block
+            start = txt.find("{")
+            end = txt.rfind("}")
+            if start != -1 and end != -1:
+                return json.loads(txt[start:end+1])
+        except Exception:
+            pass
+        return {}
+
+    # ---- Feature flags/limits already exist; reuse your can_use_feature if present ----
+    def generate_goal_plan(self, goal: dict, user_email: str = None) -> dict:
+        try:
+            can_use, reason = self.can_use_feature("plan_generation", user_email)
+        except Exception:
+            can_use = True
+        if not can_use:
+            from .fallback import FallbackAssistant
+            fallback = FallbackAssistant()
+            return fallback.fallback_plan(goal)
+        prompt = PromptTemplates.goal_plan_prompt(goal)
+        out = self._chat_json(prompt)
+        if not out:
+            from .fallback import FallbackAssistant
+            fallback = FallbackAssistant()
+            return fallback.fallback_plan(goal)
+        
+        # Validate and fix the plan
+        out = self._validate_and_fix_plan(out, goal)
+        return out
+    
+    def _validate_and_fix_plan(self, plan: dict, goal: dict) -> dict:
+        """Validate and fix plan to ensure it follows constraints"""
+        from datetime import datetime, timedelta
+        
+        # Parse weekly time constraint
+        weekly_time = goal.get('weekly_time', 'Not specified')
+        weekly_hours = 0
+        if '1-2' in weekly_time.lower():
+            weekly_hours = 1.5
+        elif '2-3' in weekly_time.lower():
+            weekly_hours = 2.5
+        elif '3-4' in weekly_time.lower():
+            weekly_hours = 3.5
+        elif '4-5' in weekly_time.lower():
+            weekly_hours = 4.5
+        elif '5+' in weekly_time.lower() or 'more' in weekly_time.lower():
+            weekly_hours = 6
+        else:
+            weekly_hours = 3
+        
+        max_weekly_minutes = int(weekly_hours * 60)
+        
+        # Fix dates to start from today and be realistic
+        today = datetime.now().date()
+        current_year = today.year
+        
+        # Calculate realistic timeline based on weekly hours
+        if weekly_hours <= 2:
+            # Low commitment: 6-12 months
+            max_timeline_months = 12
+        elif weekly_hours <= 4:
+            # Medium commitment: 3-6 months  
+            max_timeline_months = 6
+        else:
+            # High commitment: 1-3 months
+            max_timeline_months = 3
+        
+        # Fix milestone dates to be realistic and start from today
+        for i, milestone in enumerate(plan.get('milestones', [])):
+            if milestone.get('target_date'):
+                try:
+                    date_obj = datetime.fromisoformat(milestone['target_date']).date()
+                    # Calculate realistic milestone date based on timeline
+                    months_from_start = (i + 1) * (max_timeline_months / len(plan.get('milestones', [])))
+                    new_date = today + timedelta(days=int(months_from_start * 30))
+                    milestone['target_date'] = new_date.strftime('%Y-%m-%d')
+                except: 
+                    # Fallback: set milestone dates progressively
+                    months_from_start = (i + 1) * (max_timeline_months / len(plan.get('milestones', [])))
+                    new_date = today + timedelta(days=int(months_from_start * 30))
+                    milestone['target_date'] = new_date.strftime('%Y-%m-%d')
+        
+        # Fix step dates to be realistic and start from today
+        for i, step in enumerate(plan.get('steps', [])):
+            # Always set a due date, even if the AI didn't provide one
+            if not step.get('due_date') or step.get('due_date') == 'None':
+                # Calculate realistic step date (spread over the timeline)
+                days_from_start = (i + 1) * (max_timeline_months * 30 / len(plan.get('steps', [])))
+                new_date = today + timedelta(days=int(days_from_start))
+                step['due_date'] = new_date.strftime('%Y-%m-%d')
+            else:
+                try:
+                    date_obj = datetime.fromisoformat(step['due_date']).date()
+                    # Calculate realistic step date (spread over the timeline)
+                    days_from_start = (i + 1) * (max_timeline_months * 30 / len(plan.get('steps', [])))
+                    new_date = today + timedelta(days=int(days_from_start))
+                    step['due_date'] = new_date.strftime('%Y-%m-%d')
+                except:
+                    # Fallback: set step dates progressively
+                    days_from_start = (i + 1) * (max_timeline_months * 30 / len(plan.get('steps', [])))
+                    new_date = today + timedelta(days=int(days_from_start))
+                    step['due_date'] = new_date.strftime('%Y-%m-%d')
+            
+            # Also fix suggested_day if it's missing or generic
+            if (not step.get('suggested_day') or 
+                step.get('suggested_day') in ['Any', 'None', 'Mon,Tue,Wed,Thu,Fri', 'Monday,Tuesday,Wednesday,Thursday,Friday'] or
+                ',' in str(step.get('suggested_day', ''))):
+                # Assign days based on weekly time commitment
+                days_of_week = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+                if weekly_hours <= 2:
+                    # Low commitment: 2 days per week (Monday, Wednesday)
+                    step['suggested_day'] = days_of_week[i % 2 * 2]  # Monday, Wednesday
+                elif weekly_hours <= 4:
+                    # Medium commitment: 3 days per week (Monday, Wednesday, Friday)
+                    step['suggested_day'] = days_of_week[i % 3 * 2]  # Monday, Wednesday, Friday
+                else:
+                    # High commitment: 4 days per week (Monday, Tuesday, Thursday, Friday)
+                    step['suggested_day'] = days_of_week[i % 4]  # Monday, Tuesday, Thursday, Friday
+        
+        # Limit to 2-3 sessions per week for low time commitments
+        if weekly_hours <= 2.5:
+            # Group steps by suggested_day and limit to 2-3 days
+            days_used = set()
+            steps_to_keep = []
+            
+            for step in plan.get('steps', []):
+                day = step.get('suggested_day', 'Monday')
+                if len(days_used) < 3 or day in days_used:
+                    steps_to_keep.append(step)
+                    days_used.add(day)
+            
+            plan['steps'] = steps_to_keep
+        
+        # Ensure total weekly minutes doesn't exceed constraint
+        total_minutes = sum(step.get('estimate_minutes', 0) for step in plan.get('steps', []))
+        if total_minutes > max_weekly_minutes:
+            # Scale down all step durations proportionally
+            scale_factor = max_weekly_minutes / total_minutes
+            for step in plan.get('steps', []):
+                current_minutes = step.get('estimate_minutes', 0)
+                step['estimate_minutes'] = max(15, int(current_minutes * scale_factor))
+        
+        # Enhance step descriptions to be ultra-explicit - FORCE ALL STEPS
+        for step in plan.get('steps', []):
+            title = step.get('title', '')
+            description = step.get('description', '')
+            minutes = step.get('estimate_minutes', 30)
+            goal_title = goal.get('title', 'your goal')
+            
+            # FORCE ultra-explicit descriptions for ALL steps regardless of title
+            # Check if description is already enhanced (contains detailed sections)
+            if not any(keyword in description for keyword in ['TOTAL TIME:', 'EFFORT LEVEL:', 'SAFETY:', 'EQUIPMENT:']):
+                # Create ultra-explicit description based on the step title and goal
+                step['description'] = f"{title} - Break this down into specific, actionable steps. Set up your workspace with everything you need. Follow a clear sequence: preparation (5 minutes), main activity ({minutes-10} minutes), and wrap-up (5 minutes). Take breaks every 15-20 minutes to maintain focus. TOTAL TIME: {minutes} minutes. EFFORT LEVEL: 5/10 (moderate). SAFETY: Stop if you feel overwhelmed, frustrated, or any physical discomfort. EQUIPMENT: Gather all necessary materials before starting. HYDRATION: Keep water nearby and drink regularly. SUCCESS CRITERIA: You completed the full activity with clear progress made. WHAT TO EXPECT: You'll feel engaged, possibly challenged, and accomplished when done. PROGRESSION: This builds skills and momentum toward achieving {goal_title}."
+        
+        return plan
+
+    def choose_today_steps(self, context: dict, user_email: str = None) -> dict:
+        try:
+            can_use, reason = self.can_use_feature("alignment", user_email)
+        except Exception:
+            can_use = True
+        if not can_use:
+            from .fallback import FallbackAssistant
+            fallback = FallbackAssistant()
+            return fallback.fallback_alignment(context)
+        prompt = PromptTemplates.alignment_prompt(context)
+        out = self._chat_json(prompt)
+        if not out:
+            from .fallback import FallbackAssistant
+            fallback = FallbackAssistant()
+            return fallback.fallback_alignment(context)
+        return out
+
+    def adapt_plan(self, context: dict, user_email: str = None) -> dict:
+        try:
+            can_use, reason = self.can_use_feature("plan_adaptation", user_email)
+        except Exception:
+            can_use = True
+        if not can_use:
+            return {"change_summary": "No AI available; minimal rule-based reschedule", "diff": []}
+        prompt = PromptTemplates.adaptation_prompt(context)
+        out = self._chat_json(prompt)
+        return out or {"change_summary": "No change", "diff": []} 

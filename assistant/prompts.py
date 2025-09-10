@@ -320,6 +320,165 @@ class PromptTemplates:
         Provide a balanced, encouraging summary that celebrates progress while suggesting improvements.
         """
 
+    @staticmethod
+    def goal_plan_prompt(goal: dict) -> str:
+        return PromptTemplates._personalized_plan_prompt(goal)
+    
+    @staticmethod
+    def _personalized_plan_prompt(goal: dict) -> str:
+        from datetime import datetime, timedelta
+        
+        # Calculate realistic timeline based on weekly time commitment
+        weekly_time = goal.get('weekly_time', 'Not specified')
+        deadline = goal.get('deadline', None)
+        
+        # Parse weekly time to get hours per week
+        weekly_hours = 0
+        if '1-2' in weekly_time.lower():
+            weekly_hours = 1.5
+        elif '2-3' in weekly_time.lower():
+            weekly_hours = 2.5
+        elif '3-4' in weekly_time.lower():
+            weekly_hours = 3.5
+        elif '4-5' in weekly_time.lower():
+            weekly_hours = 4.5
+        elif '5+' in weekly_time.lower() or 'more' in weekly_time.lower():
+            weekly_hours = 6
+        else:
+            weekly_hours = 3  # Default assumption
+        
+        # Calculate realistic timeline if no deadline provided
+        if not deadline or deadline == 'No deadline set':
+            # Estimate total training time needed based on goal complexity
+            goal_title = goal.get('title', '').lower()
+            if any(word in goal_title for word in ['marathon', '26.2', '42k']):
+                total_hours_needed = 200  # Marathon training typically needs 200+ hours
+            elif any(word in goal_title for word in ['half', '13.1', '21k']):
+                total_hours_needed = 100
+            elif any(word in goal_title for word in ['5k', '10k']):
+                total_hours_needed = 50
+            elif any(word in goal_title for word in ['learn', 'study', 'course']):
+                total_hours_needed = 80  # Learning goals typically need 80+ hours
+            elif any(word in goal_title for word in ['weight', 'muscle', 'strength']):
+                total_hours_needed = 120  # Fitness goals typically need 120+ hours
+            else:
+                total_hours_needed = 60  # Default for other goals
+            
+            weeks_needed = max(12, int(total_hours_needed / weekly_hours))  # Minimum 12 weeks
+            start_date = datetime.now()
+            end_date = start_date + timedelta(weeks=weeks_needed)
+            calculated_deadline = end_date.strftime('%Y-%m-%d')
+        else:
+            calculated_deadline = deadline
+        
+        return f"""
+You are an expert personal coach and planning specialist. Analyze the user's goal and create a completely personalized, actionable plan based on their specific situation, needs, and preferences.
+
+USER'S GOAL & CONTEXT:
+- **What they want to achieve:** {goal.get('title', 'Not specified')}
+- **Why this matters to them:** {goal.get('why_matters', 'Not specified')}
+- **How they'll know they succeeded:** {goal.get('success_metric', 'Not specified')}
+- **Where they're starting from:** {goal.get('starting_point', 'Not specified')}
+- **When they want to achieve it:** {goal.get('deadline', 'No deadline set')}
+- **Realistic timeline calculated:** {calculated_deadline} (based on {weekly_hours} hours/week)
+
+THEIR LIFESTYLE & PREFERENCES:
+- **Weekly time available:** {goal.get('weekly_time', 'Not specified')} ({weekly_hours} hours/week)
+- **Best energy time:** {goal.get('energy_time', 'Not specified')}
+- **Days they want to keep free:** {goal.get('free_days', 'None specified')}
+- **Preferred intensity:** {goal.get('intensity', 'Balanced')}
+
+WHAT MOTIVATES & CHALLENGES THEM:
+- **What energizes them:** {goal.get('joy_sources', [])}
+- **What drains their energy:** {goal.get('energy_drainers', [])}
+- **Potential obstacles:** {goal.get('obstacles', 'None specified')}
+- **Resources they already have:** {goal.get('resources', 'None specified')}
+
+🚨 CRITICAL PLANNING RULES - MUST FOLLOW EXACTLY:
+1. **TIME CONSTRAINT VIOLATION = FAILURE**: If user has {weekly_hours} hours/week, you MUST schedule exactly 2-3 sessions per week, NEVER daily. Total minutes MUST NOT exceed {int(weekly_hours * 60)} minutes per week.
+2. **DAILY SCHEDULING = FORBIDDEN**: For {weekly_hours} hours/week, schedule activities on ONLY 2-3 specific days (e.g., "Tuesday" and "Thursday"), NEVER schedule activities for all 7 days.
+3. **SPECIFIC INSTRUCTIONS REQUIRED**: Every step MUST include exact details: distance, pace, duration, specific exercises. NO vague terms like "long run" or "training".
+            4. **DATE REQUIREMENT**: ALL dates MUST start from today ({datetime.now().strftime('%Y-%m-%d')}) and go forward. NEVER use past dates or dates more than 12 months away.
+5. **FREE DAYS RESPECT**: If user specified free days, NEVER schedule activities on those days.
+6. **VALIDATION**: Before returning, verify total weekly minutes ≤ {int(weekly_hours * 60)} and activities scheduled on ≤ 3 days.
+
+DETAILED PLANNING REQUIREMENTS:
+- Create 4-6 meaningful milestones that logically build toward their specific goal
+- Break each milestone into 3-8 highly specific, actionable steps (15-120 minutes each)
+- Schedule activities on 2-4 days per week maximum (based on their time commitment)
+- Include specific, detailed instructions for each step
+- Schedule steps on specific days of the week based on their preferences
+- Incorporate their joy sources naturally into specific activities
+- Address their specific obstacles with concrete solutions
+- Use their existing resources in specific ways
+- Make the timeline realistic based on their weekly time commitment
+- Include preparation, execution, and follow-up activities
+- Add variety to prevent boredom while maintaining focus
+
+WEEKLY SCHEDULING EXAMPLES:
+- **1-2 hours/week**: 2 sessions of 30-60 minutes each
+- **2-3 hours/week**: 2-3 sessions of 45-60 minutes each  
+- **3-4 hours/week**: 3-4 sessions of 45-60 minutes each
+- **4+ hours/week**: 4-5 sessions of 45-90 minutes each
+
+            ULTRA-SPECIFIC INSTRUCTION EXAMPLES:
+            - Instead of "practice guitar" → "Practice guitar chords C, G, D for 30 minutes. EXACTLY: Set up guitar and tuner. Warm up fingers with 5-minute finger exercises. Practice C chord: place fingers on frets 1-3-5, strum down-up-down-up pattern 20 times. Practice G chord: place fingers on frets 2-3-6, strum same pattern 20 times. Practice D chord: place fingers on frets 1-2-3, strum same pattern 20 times. Transition between chords slowly 10 times each. TOTAL TIME: 30 minutes. EFFORT LEVEL: 5/10 (moderate). SAFETY: Stop if fingers hurt or feel strained. EQUIPMENT: Guitar, tuner, comfortable chair. SUCCESS CRITERIA: You can play each chord clearly and transition between them smoothly."
+            - Instead of "study Spanish" → "Complete Duolingo lesson 15-20, practice pronunciation for 10 minutes, review vocabulary flashcards for 15 minutes. EXACTLY: Open Duolingo app, complete lessons 15-20 (about 20 minutes). Then practice pronunciation: say each new word 5 times aloud, record yourself saying 3 sentences. Finally, review flashcards: go through 20 vocabulary cards, saying each word and its English meaning. TOTAL TIME: 45 minutes. EFFORT LEVEL: 4/10 (easy). BREAKS: Take 2-minute break every 15 minutes."
+            - Instead of "write blog post" → "Write 500-word blog post about your topic for 60 minutes. EXACTLY: Open writing app, create new document. Write outline: introduction (100 words), 3 main points (100 words each), conclusion (100 words). Write introduction paragraph explaining your main point. Write first main point with specific examples. Write second main point with personal experience. Write third main point with actionable tips. Write conclusion summarizing key takeaways. TOTAL TIME: 60 minutes. EFFORT LEVEL: 6/10 (moderate). SAFETY: Stop if you feel stuck or frustrated. EQUIPMENT: Computer, writing app, timer. SUCCESS CRITERIA: You have a complete 500-word blog post with clear structure."
+
+MANDATORY FORMAT FOR EVERY STEP:
+Each step MUST include ALL of these elements:
+1. **EXACTLY**: Step-by-step instructions with specific numbers, times, distances
+2. **TOTAL TIME**: Exact duration in minutes
+3. **EFFORT LEVEL**: Scale 1-10 with description
+4. **SAFETY**: Specific safety warnings and when to stop
+5. **EQUIPMENT**: What you need (shoes, water, app, etc.)
+6. **BREAKS**: When and how long to rest
+7. **SUCCESS CRITERIA**: How you know you did it right
+8. **WHAT TO EXPECT**: Physical sensations, difficulty level
+9. **HYDRATION/NUTRITION**: When to drink water, eat
+10. **PROGRESSION**: How this builds toward your goal
+
+Return STRICT JSON only with this schema:
+{{
+  "milestones": [{{"title": str, "description": str, "target_date": "YYYY-MM-DD"}}],
+  "steps": [{{ 
+      "milestone_title": str,
+      "title": str,
+      "description": str,
+      "estimate_minutes": int,
+      "suggested_day": str,
+      "due_date": "YYYY-MM-DD"
+  }}]
+}}
+""".strip()
+
+    @staticmethod
+    def alignment_prompt(context: dict) -> str:
+        return f"""
+Given today's check-in, mood history, and the active goal plan, select 1–3 steps for TODAY and return:
+{{
+  "alignment_score": int,
+  "today_steps": [{{"step_id": int, "title": str}}],
+  "adjustments": [str],
+  "why": str
+}}
+Context: {context}
+""".strip()
+
+    @staticmethod
+    def adaptation_prompt(context: dict) -> str:
+        return f"""
+Given repeated blockers and skipped steps, adapt the plan minimally. Return changes as:
+{{
+  "change_summary": str,
+  "diff": [
+    {{"action": "reschedule|split|scope_down|merge", "step_id": int, "details": str}}
+  ]
+}}
+Context: {context}
+""".strip()
+
 class ResponseFormats:
     """Standard response formats for consistent AI outputs"""
     

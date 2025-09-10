@@ -93,6 +93,76 @@ class DatabaseManager:
                 )
             """)
             
+            # --- GOALS / PLAN TABLES ---
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS goals (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              user_email TEXT NOT NULL,
+              title TEXT NOT NULL,
+              why_matters TEXT,
+              deadline DATE,
+              success_metric TEXT,
+              starting_point TEXT,
+              weekly_time TEXT,
+              energy_time TEXT,
+              free_days TEXT,
+              intensity TEXT,
+              joy_sources TEXT,
+              energy_drainers TEXT,
+              therapy_coaching TEXT,
+              obstacles TEXT,
+              resources TEXT,
+              reminder_preference TEXT,
+              auto_adapt BOOLEAN DEFAULT 1,
+              status TEXT DEFAULT 'active',
+              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            """)
+
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS milestones (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              goal_id INTEGER NOT NULL,
+              title TEXT NOT NULL,
+              description TEXT,
+              target_date DATE,
+              seq INTEGER,
+              status TEXT DEFAULT 'pending',
+              FOREIGN KEY(goal_id) REFERENCES goals(id)
+            );
+            """)
+
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS steps (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              goal_id INTEGER NOT NULL,
+              milestone_id INTEGER,
+              title TEXT NOT NULL,
+              description TEXT,
+              estimate_minutes INTEGER,
+              suggested_day TEXT,
+              due_date DATE,
+              status TEXT DEFAULT 'pending',
+              last_scheduled DATE,
+              FOREIGN KEY(goal_id) REFERENCES goals(id),
+              FOREIGN KEY(milestone_id) REFERENCES milestones(id)
+            );
+            """)
+
+            cursor.execute("""
+            CREATE TABLE IF NOT EXISTS plan_adaptations (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              goal_id INTEGER NOT NULL,
+              checkin_timestamp TIMESTAMP NOT NULL,
+              alignment_score INTEGER,
+              reason TEXT,
+              change_summary TEXT,
+              diff_json TEXT,
+              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+              FOREIGN KEY(goal_id) REFERENCES goals(id)
+            );
+            """)
+
             # Create indexes for better performance
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_api_usage_user_date ON api_usage(user_email, date(created_at))")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_api_usage_feature ON api_usage(feature)")
@@ -100,7 +170,49 @@ class DatabaseManager:
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_checkins_user_date ON checkins(user_email, date(created_at))")
             cursor.execute("CREATE INDEX IF NOT EXISTS idx_checkins_period ON checkins(time_period)")
             
+            # Migrate existing goals table if needed
+            self._migrate_goals_table()
+            
             conn.commit()
+    
+    def _migrate_goals_table(self):
+        """Migrate existing goals table to new schema"""
+        import sqlite3
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        # Check if goals table exists and get its columns
+        cursor.execute("PRAGMA table_info(goals)")
+        columns = [row[1] for row in cursor.fetchall()]
+        
+        # List of new columns to add
+        new_columns = [
+            ('why_matters', 'TEXT'),
+            ('starting_point', 'TEXT'),
+            ('weekly_time', 'TEXT'),
+            ('energy_time', 'TEXT'),
+            ('free_days', 'TEXT'),
+            ('intensity', 'TEXT'),
+            ('joy_sources', 'TEXT'),
+            ('energy_drainers', 'TEXT'),
+            ('therapy_coaching', 'TEXT'),
+            ('obstacles', 'TEXT'),
+            ('resources', 'TEXT'),
+            ('reminder_preference', 'TEXT'),
+            ('auto_adapt', 'BOOLEAN DEFAULT 1')
+        ]
+        
+        # Add missing columns
+        for column_name, column_type in new_columns:
+            if column_name not in columns:
+                try:
+                    cursor.execute(f"ALTER TABLE goals ADD COLUMN {column_name} {column_type}")
+                    print(f"Added column {column_name} to goals table")
+                except sqlite3.OperationalError as e:
+                    print(f"Could not add column {column_name}: {e}")
+        
+        conn.commit()
+        conn.close()
     
     def record_api_usage(self, user_email: str, feature: str, tokens_used: int = None, 
                         cost_usd: float = None, success: bool = True, error_message: str = None):
@@ -377,4 +489,155 @@ class DatabaseManager:
             cursor.execute("SELECT COALESCE(SUM(cost_usd), 0) FROM api_usage")
             stats['total_api_cost'] = cursor.fetchone()[0]
             
-            return stats 
+            return stats
+
+    # ---------- GOALS: HELPERS ----------
+    def create_goal(self, user_email: str, data: dict) -> int:
+        import sqlite3, datetime, json
+        conn = sqlite3.connect(self.db_path)
+        cur = conn.cursor()
+        cur.execute("""
+          INSERT INTO goals (user_email, title, why_matters, deadline, success_metric, starting_point, 
+                           weekly_time, energy_time, free_days, intensity, joy_sources, energy_drainers,
+                           therapy_coaching, obstacles, resources, reminder_preference, auto_adapt, status)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')
+        """, (
+            user_email,
+            data.get("title",""),
+            data.get("why_matters",""),
+            data.get("deadline"),
+            data.get("success_metric",""),
+            data.get("starting_point",""),
+            data.get("weekly_time",""),
+            data.get("energy_time",""),
+            data.get("free_days",""),
+            data.get("intensity",""),
+            json.dumps(data.get("joy_sources", [])),
+            json.dumps(data.get("energy_drainers", [])),
+            data.get("therapy_coaching",""),
+            data.get("obstacles",""),
+            data.get("resources",""),
+            data.get("reminder_preference",""),
+            data.get("auto_adapt", True)
+        ))
+        goal_id = cur.lastrowid
+        conn.commit()
+        conn.close()
+        return goal_id
+
+    def get_active_goal(self, user_email: str) -> dict | None:
+        import sqlite3, json
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM goals WHERE user_email=? AND status='active' ORDER BY id DESC LIMIT 1", (user_email,))
+        row = cur.fetchone()
+        conn.close()
+        if row:
+            goal = dict(row)
+            # Parse JSON fields
+            try:
+                goal['joy_sources'] = json.loads(goal.get('joy_sources', '[]'))
+            except:
+                goal['joy_sources'] = []
+            try:
+                goal['energy_drainers'] = json.loads(goal.get('energy_drainers', '[]'))
+            except:
+                goal['energy_drainers'] = []
+            return goal
+        return None
+
+    def save_milestones(self, goal_id: int, milestones: list[dict]) -> None:
+        import sqlite3
+        conn = sqlite3.connect(self.db_path)
+        cur = conn.cursor()
+        for i, m in enumerate(milestones):
+            cur.execute("""
+              INSERT INTO milestones (goal_id, title, description, target_date, seq, status)
+              VALUES (?, ?, ?, ?, ?, 'pending')
+            """, (goal_id, m.get("title",""), m.get("description",""), m.get("target_date"), i))
+        conn.commit()
+        conn.close()
+
+    def save_steps(self, goal_id: int, steps: list[dict]) -> None:
+        import sqlite3
+        conn = sqlite3.connect(self.db_path)
+        cur = conn.cursor()
+        # map milestone titles to ids
+        cur.execute("SELECT id, title FROM milestones WHERE goal_id=?", (goal_id,))
+        mapping = {row[1]: row[0] for row in cur.fetchall()}
+        for s in steps:
+            mid = mapping.get(s.get("milestone_title"))
+            cur.execute("""
+              INSERT INTO steps (goal_id, milestone_id, title, description, estimate_minutes, suggested_day, due_date, status)
+              VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')
+            """, (goal_id, mid, s.get("title",""), s.get("description",""),
+                  int(s.get("estimate_minutes") or 30),
+                  s.get("suggested_day","Any"),
+                  s.get("due_date")))
+        conn.commit()
+        conn.close()
+
+    def list_plan(self, goal_id: int) -> tuple[list[dict], list[dict]]:
+        import sqlite3
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
+        cur.execute("SELECT * FROM milestones WHERE goal_id=? ORDER BY seq ASC", (goal_id,))
+        milestones = [dict(r) for r in cur.fetchall()]
+        cur.execute("SELECT * FROM steps WHERE goal_id=? ORDER BY id ASC", (goal_id,))
+        steps = [dict(r) for r in cur.fetchall()]
+        conn.close()
+        return milestones, steps
+
+    def clear_plan(self, goal_id: int):
+        """Clear all milestones and steps for a goal"""
+        import sqlite3
+        conn = sqlite3.connect(self.db_path)
+        cur = conn.cursor()
+        cur.execute("DELETE FROM steps WHERE goal_id=?", (goal_id,))
+        cur.execute("DELETE FROM milestones WHERE goal_id=?", (goal_id,))
+        conn.commit()
+        conn.close()
+
+    def get_today_candidates(self, user_email: str, date_str: str) -> list[dict]:
+        # simple heuristic: pending steps due today or with suggested_day matching weekday
+        import sqlite3, datetime
+        wd = datetime.datetime.fromisoformat(date_str).strftime("%a")  # e.g., Mon
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        cur = conn.cursor()
+        goal = self.get_active_goal(user_email)
+        if not goal: 
+            conn.close()
+            return []
+        cur.execute("""
+          SELECT * FROM steps 
+          WHERE goal_id=? AND status IN ('pending','in_progress')
+          ORDER BY COALESCE(due_date,'9999-12-31') ASC, estimate_minutes ASC
+        """, (goal["id"],))
+        rows = [dict(r) for r in cur.fetchall()]
+        conn.close()
+        def day_ok(s):
+            sd = (s.get("suggested_day") or "Any")
+            return sd == "Any" or wd in sd.split(",")
+        return [r for r in rows if day_ok(r)]
+
+    def mark_step_status(self, step_id: int, status: str):
+        import sqlite3
+        conn = sqlite3.connect(self.db_path)
+        cur = conn.cursor()
+        cur.execute("UPDATE steps SET status=?, last_scheduled=date('now') WHERE id=?", (status, step_id))
+        conn.commit()
+        conn.close()
+
+    def record_adaptation(self, goal_id: int, checkin_ts: str, alignment_score: int, reason: str, change_summary: str, diff_json: str):
+        import sqlite3
+        conn = sqlite3.connect(self.db_path)
+        cur = conn.cursor()
+        cur.execute("""
+          INSERT INTO plan_adaptations (goal_id, checkin_timestamp, alignment_score, reason, change_summary, diff_json)
+          VALUES (?, ?, ?, ?, ?, ?)
+        """, (goal_id, checkin_ts, alignment_score, reason, change_summary, diff_json))
+        conn.commit()
+        conn.close() 

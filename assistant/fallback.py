@@ -6,29 +6,27 @@ Provides intelligent responses when AI features are not available
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 import random
-from .ai_service import AIService
 
 class FallbackAssistant:
     """Fallback assistant that provides intelligent responses without AI"""
     
-    def __init__(self, user_profile: Dict, mood_data: List[Dict], checkin_data: List[Dict]):
-        self.user_profile = user_profile
-        self.mood_data = mood_data
-        self.checkin_data = checkin_data
-        self.user_goal = user_profile.get('goal', 'Improve focus and productivity')
-        self.user_tone = user_profile.get('tone', 'Gentle & Supportive')
-        self.joy_sources = user_profile.get('joy_sources', [])
-        self.energy_drainers = user_profile.get('energy_drainers', [])
-        self.therapy_coaching = user_profile.get('therapy_coaching', 'No')
-        self.availability = user_profile.get('availability', '1–2 hours')
-        self.energy = user_profile.get('energy', 'Okay')
-        self.emotional_patterns = user_profile.get('emotional_patterns', 'Not sure yet')
-        self.small_habit = user_profile.get('small_habit', '')
-        self.reminders = user_profile.get('reminders', 'Yes')
-        self.situation = user_profile.get('situation', 'Freelancer')
+    def __init__(self, user_profile: Dict = None, mood_data: List[Dict] = None, checkin_data: List[Dict] = None):
+        self.user_profile = user_profile or {}
+        self.mood_data = mood_data or []
+        self.checkin_data = checkin_data or []
+        self.user_goal = self.user_profile.get('goal', 'Improve focus and productivity')
+        self.user_tone = self.user_profile.get('tone', 'Gentle & Supportive')
+        self.joy_sources = self.user_profile.get('joy_sources', [])
+        self.energy_drainers = self.user_profile.get('energy_drainers', [])
+        self.therapy_coaching = self.user_profile.get('therapy_coaching', 'No')
+        self.availability = self.user_profile.get('availability', '1–2 hours')
+        self.energy = self.user_profile.get('energy', 'Okay')
+        self.emotional_patterns = self.user_profile.get('emotional_patterns', 'Not sure yet')
+        self.small_habit = self.user_profile.get('small_habit', '')
+        self.reminders = self.user_profile.get('reminders', 'Yes')
+        self.situation = self.user_profile.get('situation', 'Freelancer')
         
-        # Initialize AI service
-        self.ai_service = AIService()
+        # AI service will be imported locally when needed
     
     def get_daily_encouragement(self) -> str:
         """Get a daily encouragement message"""
@@ -41,9 +39,14 @@ class FallbackAssistant:
             pass
         
         # Try AI first
-        ai_encouragement = self.ai_service.generate_daily_encouragement(
-            self.user_profile, self.mood_data, self.checkin_data, user_email
-        )
+        try:
+            from .ai_service import AIService
+            ai_service = AIService()
+            ai_encouragement = ai_service.generate_daily_encouragement(
+                self.user_profile, self.mood_data, self.checkin_data, user_email
+            )
+        except Exception:
+            ai_encouragement = None
         
         if ai_encouragement:
             return ai_encouragement
@@ -75,7 +78,12 @@ class FallbackAssistant:
     def get_mood_insight(self) -> str:
         """Get a mood insight based on recent data"""
         # Try AI first
-        ai_insight = self.ai_service.generate_mood_analysis(self.mood_data, self.user_goal)
+        try:
+            from .ai_service import AIService
+            ai_service = AIService()
+            ai_insight = ai_service.generate_mood_analysis(self.mood_data, self.user_goal)
+        except Exception:
+            ai_insight = None
         
         if ai_insight:
             return ai_insight
@@ -121,7 +129,9 @@ class FallbackAssistant:
         
         # Try AI first
         try:
-            ai_tip = self.ai_service.generate_productivity_tip(
+            from .ai_service import AIService
+            ai_service = AIService()
+            ai_tip = ai_service.generate_productivity_tip(
                 self.user_profile, self.mood_data, self.checkin_data, user_email
             )
             
@@ -202,9 +212,14 @@ class FallbackAssistant:
             pass
         
         # Try AI first
-        ai_greeting = self.ai_service.generate_personalized_greeting(
-            self.user_profile, self.mood_data, self.checkin_data, user_email
-        )
+        try:
+            from .ai_service import AIService
+            ai_service = AIService()
+            ai_greeting = ai_service.generate_personalized_greeting(
+                self.user_profile, self.mood_data, self.checkin_data, user_email
+            )
+        except Exception:
+            ai_greeting = None
         
         if ai_greeting:
             return ai_greeting
@@ -554,3 +569,97 @@ class FallbackAssistant:
             return "3-4 hours of moderate work"
         else:
             return "2-3 hours of lighter tasks"
+
+    def fallback_plan(self, goal: dict) -> dict:
+        # Enhanced fallback plan using new goal structure
+        import datetime
+        title = goal.get("title","Your Goal")
+        deadline = goal.get("deadline")
+        weekly_time = goal.get("weekly_time", "2–4 hours")
+        intensity = goal.get("intensity", "Balanced")
+        energy_time = goal.get("energy_time", "Morning")
+        free_days = goal.get("free_days", [])
+        starting_point = goal.get("starting_point", "Not specified")
+        
+        today = datetime.date.today()
+        if deadline:
+            try:
+                dl = datetime.date.fromisoformat(deadline)
+            except Exception:
+                dl = today + datetime.timedelta(days=90)
+        else:
+            dl = today + datetime.timedelta(days=90)
+        
+        # Adjust timeline based on intensity
+        if intensity == "Gentle":
+            total_days = (dl - today).days * 1.5  # More time
+            step_count = 8
+        elif intensity == "Ambitious":
+            total_days = (dl - today).days * 0.7  # Less time
+            step_count = 15
+        else:  # Balanced
+            total_days = (dl - today).days
+            step_count = 12
+        
+        # Create milestones based on starting point
+        milestones = []
+        if "beginner" in starting_point.lower():
+            milestones = [
+                {"title": "Foundation Building", "description": f"Learn basics and set up for {title}", "target_date": str(today + datetime.timedelta(days=int(total_days*0.3)))},
+                {"title": "Skill Development", "description": f"Develop core skills for {title}", "target_date": str(today + datetime.timedelta(days=int(total_days*0.6)))},
+                {"title": "Mastery & Application", "description": f"Apply skills and achieve {title}", "target_date": str(dl)}
+            ]
+        else:
+            milestones = [
+                {"title": "Assessment & Planning", "description": f"Evaluate current state and plan for {title}", "target_date": str(today + datetime.timedelta(days=int(total_days*0.25)))},
+                {"title": "Active Progress", "description": f"Make significant progress toward {title}", "target_date": str(today + datetime.timedelta(days=int(total_days*0.6)))},
+                {"title": "Completion & Refinement", "description": f"Complete and refine {title}", "target_date": str(dl)}
+            ]
+        
+        # Create steps based on energy time and free days
+        steps = []
+        available_days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+        if free_days:
+            available_days = [day for day in available_days if day not in free_days]
+        
+        # Suggest days based on energy time
+        if energy_time == "Morning":
+            suggested_days = "Mon,Tue,Wed,Thu,Fri"
+        elif energy_time == "Afternoon":
+            suggested_days = "Mon,Tue,Wed,Thu,Fri"
+        elif energy_time == "Evening":
+            suggested_days = "Mon,Tue,Wed,Thu,Fri"
+        else:
+            suggested_days = "Any"
+        
+        for i in range(1, step_count + 1):
+            milestone_idx = min(i // (step_count // 3), 2)
+            milestone_title = milestones[milestone_idx]["title"]
+            
+            # Adjust step size based on weekly time
+            if weekly_time in ["< 1 hour", "1–2 hours"]:
+                estimate_minutes = 15
+            elif weekly_time in ["2–4 hours"]:
+                estimate_minutes = 30
+            else:  # 4+ hours
+                estimate_minutes = 45
+            
+            steps.append({
+                "milestone_title": milestone_title,
+                "title": f"Step {i}: Action item",
+                "description": f"Specific action to move toward {title}",
+                "estimate_minutes": estimate_minutes,
+                "suggested_day": suggested_days,
+                "due_date": None
+            })
+        
+        return {"milestones": milestones, "steps": steps}
+
+    def fallback_alignment(self, context: dict) -> dict:
+        # choose 1–3 smallest pending steps
+        steps = context.get("steps_today_candidates", []) or []
+        steps = sorted(steps, key=lambda s: (s.get("estimate_minutes") or 999, s.get("due_date") or "9999-12-31"))
+        pick = [{"step_id": s["id"], "title": s["title"]} for s in steps[:3]]
+        score = 70 if pick else 40
+        why = "Picked small steps to keep momentum given recent mood and time."
+        return {"alignment_score": score, "today_steps": pick, "adjustments": [], "why": why}

@@ -10,6 +10,8 @@ project_root = current_file.parent.parent
 sys.path.insert(0, str(project_root))
 
 from data.storage import save_user_profile, load_user_profile, reset_user_profile
+from data.database import DatabaseManager
+from assistant.ai_service import AIService
 from auth import require_beta_access, get_user_email
 
 def safe_index(value, options, default=0):
@@ -42,41 +44,9 @@ hide_streamlit_navigation = """
 """
 st.markdown(hide_streamlit_navigation, unsafe_allow_html=True)
 
-# Custom navigation sidebar
-with st.sidebar:
-    st.subheader("🧭 Navigation")
-    
-    # Main pages
-    if st.button("🏠 Home", use_container_width=True):
-        st.switch_page("app.py")
-    
-    if st.button("👤 Profile", use_container_width=True):
-        st.switch_page("pages/profile.py")
-    
-    if st.button("📝 Daily Check-in", use_container_width=True):
-        st.switch_page("pages/daily_checkin.py")
-    
-    if st.button("🌱 Weekly Reflection", use_container_width=True):
-        st.switch_page("pages/reflection.py")
-    
-    if st.button("📊 Insights", use_container_width=True):
-        st.switch_page("pages/history.py")
-    
-    st.write("---")
-    
-    # Admin insights access
-    user_email = get_user_email()
-    if user_email == "joanapnpinto@gmail.com":
-        st.subheader("🔓 Admin Tools")
-        if st.button("📊 Database Insights", use_container_width=True):
-            st.switch_page("pages/insights.py")
-    
-    st.write("---")
-    
-    # Logout
-    if st.button("🚪 Logout", use_container_width=True):
-        from auth import logout
-        logout()
+# Standard navigation sidebar
+from shared_sidebar import show_standard_sidebar
+show_standard_sidebar()
 
 # Require beta access
 require_beta_access()
@@ -89,18 +59,26 @@ st.info("💡 **Pro Tip:** Take your time with these questions - they help the A
 
 # Load existing profile if available
 existing_profile = load_user_profile()
-is_returning_user = bool(existing_profile)
+
+# Also check if user has an active goal (new onboarding system)
+db = DatabaseManager()
+user_email = get_user_email() or "me@example.com"
+active_goal = db.get_active_goal(user_email)
+
+# Use active_goal data if available, otherwise fall back to existing_profile
+profile_data = active_goal if active_goal else existing_profile
+is_returning_user = bool(profile_data)
 
 # Prefill or fallback values
-goal = existing_profile.get("goal", "")
-joy_sources = existing_profile.get("joy_sources", [])
-joy_other = existing_profile.get("joy_other", "")
-energy_drainers = existing_profile.get("energy_drainers", [])
-energy_drainer_other = existing_profile.get("energy_drainer_other", "")
-therapy_coaching = existing_profile.get("therapy_coaching", "No")
+goal = profile_data.get("title", profile_data.get("goal", "")) if profile_data else ""
+joy_sources = profile_data.get("joy_sources", []) if profile_data else []
+joy_other = profile_data.get("joy_other", "") if profile_data else ""
+energy_drainers = profile_data.get("energy_drainers", []) if profile_data else []
+energy_drainer_other = profile_data.get("energy_drainer_other", "") if profile_data else ""
+therapy_coaching = profile_data.get("therapy_coaching", "No") if profile_data else "No"
 
 # Handle availability value conversion for backward compatibility
-old_availability = existing_profile.get("availability", "1–2 hours")
+old_availability = profile_data.get("weekly_time", "1–2 hours") if profile_data else "1–2 hours"
 availability_options = ["< 1 hour", "1–2 hours", "2–4 hours", "4+ hours"]
 if old_availability == "2-4 hours":  # Convert old format to new format
     availability = "2–4 hours"
@@ -109,189 +87,255 @@ elif old_availability in availability_options:
 else:
     availability = "1–2 hours"
 
-energy = existing_profile.get("energy", "Okay")
-emotional_patterns = existing_profile.get("emotional_patterns", "Not sure yet")
-small_habit = existing_profile.get("small_habit", "")
-reminders = existing_profile.get("reminders", "Yes")
-tone = existing_profile.get("tone", "Gentle & Supportive")
-situation = existing_profile.get("situation", "Freelancer")
-situation_other = existing_profile.get("situation_other", "")
+energy = profile_data.get("energy_time", "Okay") if profile_data else "Okay"
+emotional_patterns = profile_data.get("emotional_patterns", "Not sure yet") if profile_data else "Not sure yet"
+small_habit = profile_data.get("small_habit", "") if profile_data else ""
+reminders = profile_data.get("reminder_preference", "Yes") if profile_data else "Yes"
+tone = profile_data.get("tone", "Gentle & Supportive") if profile_data else "Gentle & Supportive"
+situation = profile_data.get("situation", "Freelancer") if profile_data else "Freelancer"
+situation_other = profile_data.get("situation_other", "") if profile_data else ""
 
 if is_returning_user:
     st.success("👋 Welcome back! You can update your profile or reset it below.")
 else:
     st.info("👋 First time here? Let's get to know you better!")
 
-st.subheader("🎯 Let's understand your needs")
+st.subheader("🎯 Let's create your personalized plan")
 
-# Question 1: Main area of support
-goal = st.text_area(
-    "🎯 What's one area of your life you'd like more support with right now?",
+# Question 1: Main goal (mandatory)
+st.markdown("**1. What's your main goal?***")
+goal_title = st.text_input(
+    "What do you want to achieve?",
     value=goal,
-    placeholder="e.g., staying focused, managing emotions, building routines…",
-    help="This helps us tailor your experience"
+    placeholder="e.g., Learn Python programming, Run a marathon, Start a business",
+    help="Be specific about what you want to accomplish"
 )
 
-st.subheader("❤️ Understanding what energizes you")
+# Question 2: Why it matters (optional)
+st.markdown("**2. Why does this matter to you?**")
+why_matters = st.text_area(
+    "What's driving you to pursue this goal?",
+    value=profile_data.get("why_matters", "") if profile_data else "",
+    placeholder="e.g., Career advancement, personal growth, helping others...",
+    help="Understanding your motivation helps create a more meaningful plan"
+)
 
-# Question 2: Joy sources
-joy_options = ["Friends", "Movement", "Creating", "Helping others", "Nature", "Rest", "Learning", "Other"]
+# Question 3: Target date (mandatory)
+st.markdown("**3. Do you have a target date?***")
+has_deadline = st.radio("Do you have a deadline?", ["Yes", "No"], horizontal=True)
+goal_deadline = None
+if has_deadline == "Yes":
+    goal_deadline = st.date_input("When is your target date?")
+
+# Question 4: Success metric (mandatory)
+st.markdown("**4. How will we know you've succeeded?***")
+success_metric = st.text_input(
+    "What does success look like?",
+    value=profile_data.get("success_metric", "") if profile_data else "",
+    placeholder="e.g., Complete 3 projects, Finish marathon under 4 hours, Launch MVP",
+    help="Be specific about how you'll measure success"
+)
+
+# Question 5: Starting point (mandatory)
+st.markdown("**5. What's your starting point right now?***")
+starting_point = st.text_area(
+    "Where are you starting from?",
+    value=profile_data.get("starting_point", "") if profile_data else "",
+    placeholder="e.g., Complete beginner, Some experience, Already started but stuck...",
+    help="This helps us create realistic first steps"
+)
+
+# Question 6: Weekly time (mandatory)
+st.markdown("**6. Realistically, how much time can you give this each week?***")
+weekly_time = st.select_slider(
+    "Weekly time commitment",
+    options=["< 1 hour", "1–2 hours", "2–4 hours", "4–6 hours", "6+ hours"],
+    value=availability
+)
+
+# Question 7: Energy time (optional)
+st.markdown("**7. When do you usually have more energy?**")
+energy_time = st.selectbox(
+    "Your peak energy time",
+    options=["Morning", "Afternoon", "Evening", "Varies", "Not sure"],
+    index=safe_index(energy, ["Morning", "Afternoon", "Evening", "Varies", "Not sure"]),
+    help="This helps us schedule your most important tasks"
+)
+
+# Question 8: Free days (optional)
+st.markdown("**8. Any days you prefer to keep free?**")
+free_days = st.multiselect(
+    "Days to avoid",
+    options=["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+    default=profile_data.get("free_days", []) if profile_data else [],
+    help="Select days you'd prefer not to work on this goal"
+)
+
+# Question 9: Intensity (optional)
+st.markdown("**9. How intense should we start?**")
+intensity = st.selectbox(
+    "Starting intensity",
+    options=["Gentle", "Balanced", "Ambitious"],
+    index=safe_index(profile_data.get("intensity", "Balanced") if profile_data else "Balanced", ["Gentle", "Balanced", "Ambitious"]),
+    help="Gentle = small steps, Balanced = moderate pace, Ambitious = aggressive timeline"
+)
+
+# Question 10: Joy sources (optional)
+st.markdown("**10. What brings you joy or gives you energy lately?**")
+joy_options = ["Friends", "Movement", "Creating", "Helping others", "Nature", "Rest", "Learning", "Music", "Other"]
 joy_sources = st.multiselect(
-    "❤️ What brings you joy or gives you energy lately?",
+    "What energizes you?",
     options=joy_options,
-    default=joy_sources
+    default=joy_sources,
+    help="We'll incorporate these into your plan to keep you motivated"
 )
 
 # Conditional "Other" specification for joy sources
 if "Other" in joy_sources:
     st.info("💬 Tell us more about what brings you joy!")
     joy_other = st.text_area(
-        "Do you want to specify what?",
-        value=joy_other,
-        placeholder="Write what brings you joy…"
+        "What else brings you joy?",
+        placeholder="Write what brings you joy…",
+        help="Specify what other things energize you"
     )
+else:
+    joy_other = ""
 
-st.subheader("🌧️ Understanding what drains you")
-
-# Question 3: Energy drainers
-drainer_options = ["Overwhelm", "Lack of sleep", "Isolation", "Criticism", "Deadlines", "Other"]
+# Question 11: Energy drainers (optional)
+st.markdown("**11. What tends to bring you down or drain your energy?**")
+drainer_options = ["Overwhelm", "Lack of sleep", "Isolation", "Criticism", "Deadlines", "Perfectionism", "Other"]
 energy_drainers = st.multiselect(
-    "🌧️ What tends to bring you down or drain your energy?",
+    "What drains your energy?",
     options=drainer_options,
-    default=energy_drainers
+    help="We'll help you avoid or manage these"
 )
 
 # Conditional "Other" specification for energy drainers
 if "Other" in energy_drainers:
     st.info("💬 Tell us more about what drains your energy!")
     energy_drainer_other = st.text_area(
-        "Do you want to specify what?",
-        value=energy_drainer_other,
-        placeholder="Write what brings you down or drains your energy…"
+        "What else drains your energy?",
+        placeholder="Write what brings you down or drains your energy…",
+        help="Specify what other things drain your energy"
     )
+else:
+    energy_drainer_other = ""
 
-st.subheader("💬 Professional support")
-
-# Question 4: Therapy/coaching
+# Question 12: Therapy/coaching (optional)
+st.markdown("**12. Are you currently with a therapist, coach or mentor?**")
 therapy_coaching = st.selectbox(
-    "💬 Are you currently working with a therapist, coach, or mentor?",
+    "Professional support",
     options=["No", "Yes", "I'd like to find one"],
-    index=safe_index(therapy_coaching, ["No", "Yes", "I'd like to find one"])
+    help="This helps us tailor our approach"
 )
 
-st.subheader("⏱️ Time and energy assessment")
-
-# Question 5: Time availability
-availability = st.selectbox(
-    "⏱️ On most weekdays, how much time do you feel you can dedicate to yourself or your goals?",
-    options=["< 1 hour", "1–2 hours", "2–4 hours", "4+ hours"],
-    index=safe_index(availability, ["< 1 hour", "1–2 hours", "2–4 hours", "4+ hours"])
+# Question 13: Obstacles (optional)
+st.markdown("**13. What might get in the way?**")
+obstacles = st.text_area(
+    "Potential challenges",
+    placeholder="e.g., Time constraints, lack of confidence, competing priorities...",
+    help="Identifying obstacles helps us plan around them"
 )
 
-# Question 6: Current energy levels
-energy = st.selectbox(
-    "🔋 How would you describe your current energy levels?",
-    options=["Very low", "Low", "Okay", "Good", "High"],
-    index=safe_index(energy, ["Very low", "Low", "Okay", "Good", "High"])
+# Question 14: Resources (optional)
+st.markdown("**14. What resources do you already have?**")
+resources = st.text_area(
+    "Available resources",
+    placeholder="e.g., Books, courses, tools, connections, budget...",
+    help="This helps us leverage what you already have"
 )
 
-# Conditional questions for low energy
-if energy in ["Low", "Very low"]:
-    st.info("💡 Since your energy is low, let's see how we can help!")
-    
-    # Question 6.1: Emotional patterns help
-    emotional_patterns = st.selectbox(
-        "🧠 Do you want help understanding emotional patterns over time?",
-        options=["Yes", "No", "Not sure yet"],
-        index=safe_index(emotional_patterns, ["Yes", "No", "Not sure yet"])
-    )
-    
-    # Question 6.2: Small habit building
-    small_habit = st.text_area(
-        "🌱 What's one small habit you'd love to build right now?",
-        value=small_habit,
-        placeholder="e.g., journaling, moving more, taking breaks…"
-    )
-
-st.subheader("🔔 Assistant preferences")
-
-# Question 7: Reminders
-reminders = st.selectbox(
-    "🔔 Would you like gentle reminders or check-in nudges from your assistant?",
-    options=["Yes", "No"],
-    index=safe_index(reminders, ["Yes", "No"])
+# Question 15: Reminders (optional)
+st.markdown("**15. How do you want reminders?**")
+reminder_preference = st.selectbox(
+    "Reminder frequency",
+    options=["Daily", "Weekdays", "Custom", "None"],
+    help="How often would you like check-in reminders?"
 )
 
-# Question 8: Communication tone
-tone = st.selectbox(
-    "🗣️ How would you like your assistant to speak to you?",
-    options=["Direct & Motivating", "Gentle & Supportive", "Neutral & Balanced"],
-    index=safe_index(tone, ["Direct & Motivating", "Gentle & Supportive", "Neutral & Balanced"])
-)
-
-st.subheader("💼 Your situation")
-
-# Question 9: Current situation
-situation = st.selectbox(
-    "💼 Which of these best describes your current situation?",
-    options=["Freelancer", "New parent", "PhD student", "Full-time job", "Unemployed", "Other"],
-    index=safe_index(situation, ["Freelancer", "New parent", "PhD student", "Full-time job", "Unemployed", "Other"])
-)
-
-# Conditional "Other" specification for situation
-if situation == "Other":
-    st.info("💬 Tell us more about your situation!")
-    situation_other = st.text_area(
-        "Do you want to specify what?",
-        value=situation_other,
-        placeholder="Describe your current situation in a few words…"
-    )
-
-# Save button
-submitted = st.button("💾 Save & Continue", type="primary", use_container_width=True)
-
-# Helpful tip before submission
-st.info("💡 **What's next?** After saving, you'll be guided to start your first check-in and explore the app!")
-
-if submitted:
-    user_profile = {
-        "goal": goal,
-        "joy_sources": joy_sources,
-        "joy_other": joy_other if "Other" in joy_sources else "",
-        "energy_drainers": energy_drainers,
-        "energy_drainer_other": energy_drainer_other if "Other" in energy_drainers else "",
-        "therapy_coaching": therapy_coaching,
-        "availability": availability,
-        "energy": energy,
-        "emotional_patterns": emotional_patterns if energy in ["Low", "Very low"] else "Not applicable",
-        "small_habit": small_habit if energy in ["Low", "Very low"] else "",
-        "reminders": reminders,
-        "tone": tone,
-        "situation": situation,
-        "situation_other": situation_other if situation == "Other" else ""
-    }
-
-    save_user_profile(user_profile)
-    st.success("✅ Profile saved successfully!")
+# Generate Plan Button
+st.markdown("---")
+if goal_title and success_metric and starting_point and weekly_time:
+    if st.button("🚀 Generate Plan", type="primary", use_container_width=True):
+        user_email = get_user_email() or "me@example.com"
+        db = DatabaseManager()
+        goal_id = db.create_goal(user_email, {
+            "title": goal_title,
+            "why_matters": why_matters,
+            "deadline": str(goal_deadline) if goal_deadline else None,
+            "success_metric": success_metric,
+            "starting_point": starting_point,
+            "weekly_time": weekly_time,
+            "energy_time": energy_time,
+            "free_days": ",".join(free_days) if free_days else "",
+            "intensity": intensity,
+            "joy_sources": joy_sources,
+            "energy_drainers": energy_drainers,
+            "therapy_coaching": therapy_coaching,
+            "obstacles": obstacles,
+            "resources": resources,
+            "reminder_preference": reminder_preference,
+            "auto_adapt": True
+        })
         
-    # Feedback prompt after onboarding completion
-    st.write("---")
-    st.subheader("🎉 Welcome to Humsy!")
-    st.write("You're all set up! How was the onboarding experience?")
-    
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        if st.button("👍 Smooth & easy!", key="onboarding_good"):
-            st.success("Great! We're glad it was easy for you! 🙏")
-            st.switch_page("pages/daily_checkin.py")
-    with col2:
-        if st.button("🤔 Could be clearer", key="onboarding_ok"):
-            st.info("We'd love to improve it! [📝 Feedback Form](https://tally.so/r/mBr11Q)")
-            st.switch_page("pages/daily_checkin.py")
-    with col3:
-        if st.button("📝 Share detailed feedback", key="onboarding_detailed"):
-            st.markdown("**[📋 Open Feedback Form](https://tally.so/r/mBr11Q)**")
-            st.switch_page("pages/daily_checkin.py")
+        # Generate plan
+        ai = AIService()
+        plan_data = {
+            "title": goal_title,
+            "why_matters": why_matters,
+            "deadline": str(goal_deadline) if goal_deadline else None,
+            "success_metric": success_metric,
+            "starting_point": starting_point,
+            "weekly_time": weekly_time,
+            "energy_time": energy_time,
+            "free_days": free_days,
+            "intensity": intensity,
+            "joy_sources": joy_sources,
+            "energy_drainers": energy_drainers,
+            "obstacles": obstacles,
+            "resources": resources
+        }
+        
+        with st.spinner("🤖 Generating your personalized plan..."):
+            plan = ai.generate_goal_plan(plan_data, user_email)
+        
+        db.save_milestones(goal_id, plan.get("milestones", []))
+        db.save_steps(goal_id, plan.get("steps", []))
+        
+        st.success("🎉 Plan generated successfully!")
+        
+        # Post-generation questions
+        st.subheader("📋 Plan Review")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            edit_plan = st.radio("Would you like to edit the plan before saving?", ["Yes", "No"], horizontal=True)
+        with col2:
+            auto_adapt = st.radio("Do you want the plan to auto-adapt when you skip tasks?", ["Yes", "No"], horizontal=True)
+        
+        if edit_plan == "No" and auto_adapt == "No":
+            # Update auto_adapt setting
+            import sqlite3
+            conn = sqlite3.connect(db.db_path)
+            cur = conn.cursor()
+            cur.execute("UPDATE goals SET auto_adapt = ? WHERE id = ?", (False, goal_id))
+            conn.commit()
+            conn.close()
+            
+            st.success("✅ Plan saved! Check the Plan page to view your roadmap.")
+            st.switch_page("pages/plan.py")
+        elif edit_plan == "Yes":
+            st.info("📝 Plan editing feature coming soon! For now, you can view and modify your plan on the Plan page.")
+            st.switch_page("pages/plan.py")
+        else:
+            st.success("✅ Plan saved! Check the Plan page to view your roadmap.")
+            st.switch_page("pages/plan.py")
+            
+else:
+    st.info("👆 Please fill in all mandatory fields (marked with *) to generate your personalized plan.")
+
+# Additional profile information is now integrated into the main onboarding flow above
+# No need for duplicate questions
 
 # 🚨 Reset Button with Confirmation
 st.markdown("---")

@@ -13,7 +13,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from data.insights import DatabaseInsights
-from auth import get_user_email
+from auth import get_user_email, get_admin_email
 
 def main():
     st.set_page_config(
@@ -43,7 +43,9 @@ def main():
     """
     st.markdown(hide_streamlit_navigation, unsafe_allow_html=True)
     
-    # Custom navigation sidebar
+    # Standard navigation sidebar
+    from shared_sidebar import show_standard_sidebar
+    show_standard_sidebar()
     with st.sidebar:
         st.subheader("🧭 Navigation")
         
@@ -67,7 +69,8 @@ def main():
         
         # Admin insights access
         user_email = get_user_email()
-        if user_email == "joanapnpinto@gmail.com":
+        admin_email = get_admin_email()
+        if user_email == admin_email:
             st.subheader("🔓 Admin Tools")
             if st.button("📊 Database Insights", use_container_width=True):
                 st.switch_page("pages/insights.py")
@@ -89,8 +92,8 @@ def main():
         return
     
     # Restrict access to admin email only
-    ADMIN_EMAIL = "joanapnpinto@gmail.com"
-    if user_email != ADMIN_EMAIL:
+    admin_email = get_admin_email()
+    if user_email != admin_email:
         st.error("🔒 **Access Restricted**")
         st.write("Database insights are only available to administrators during beta testing.")
         st.write("If you need access to your personal data, please contact the development team.")

@@ -12,6 +12,7 @@ project_root = current_file.parent.parent
 sys.path.insert(0, str(project_root))
 
 from data.storage import save_user_profile, load_user_profile, save_checkin_data, load_checkin_data, load_mood_data
+from data.database import DatabaseManager
 from assistant.fallback import FallbackAssistant
 from assistant.ai_service import AIService
 from auth import require_beta_access, get_user_email
@@ -39,49 +40,14 @@ hide_streamlit_navigation = """
 """
 st.markdown(hide_streamlit_navigation, unsafe_allow_html=True)
 
-# Custom navigation sidebar
-with st.sidebar:
-    st.subheader("🧭 Navigation")
-    
-    # Main pages
-    if st.button("🏠 Home", use_container_width=True):
-        st.switch_page("app.py")
-    
-    if st.button("👤 Profile", use_container_width=True):
-        st.switch_page("pages/profile.py")
-    
-    if st.button("📝 Daily Check-in", use_container_width=True):
-        st.switch_page("pages/daily_checkin.py")
-    
-    if st.button("😊 Mood Tracker", use_container_width=True):
-        st.switch_page("pages/mood_tracker.py")
-    
-    if st.button("🌱 Weekly Reflection", use_container_width=True):
-        st.switch_page("pages/reflection.py")
-    
-    if st.button("📊 Insights", use_container_width=True):
-        st.switch_page("pages/history.py")
-    
-    st.write("---")
-    
-    # Admin insights access
-    user_email = get_user_email()
-    if user_email == "joanapnpinto@gmail.com":
-        st.subheader("🔓 Admin Tools")
-        if st.button("📊 Database Insights", use_container_width=True):
-            st.switch_page("pages/insights.py")
-    
-    st.write("---")
-    
-    # Logout
-    if st.button("🚪 Logout", use_container_width=True):
-        from auth import logout
-        logout()
+# Standard navigation sidebar
+from shared_sidebar import show_standard_sidebar
+show_standard_sidebar()
 
 # Require beta access
 require_beta_access()
 
-def generate_checkin_analysis(user_profile, checkin_data, mood_data, time_period):
+def generate_checkin_analysis(user_profile, checkin_data, mood_data, time_period, active_goal=None):
     """Generate AI-powered analysis of the check-in against user's goal and patterns"""
     try:
         # Initialize AI service
@@ -92,13 +58,53 @@ def generate_checkin_analysis(user_profile, checkin_data, mood_data, time_period
         recent_checkins = [c for c in checkin_data if (datetime.now() - datetime.fromisoformat(c['timestamp'])).days <= 7]
         recent_moods = [m for m in mood_data if (datetime.now() - datetime.fromisoformat(m['timestamp'])).days <= 7]
         
+        # Use active_goal if available, otherwise fall back to user_profile
+        if active_goal:
+            user_goal = active_goal.get('title', 'Not specified')
+            user_tone = 'Gentle & Supportive'  # Default tone for new system
+            user_situation = active_goal.get('why_matters', 'Not specified')
+            
+            # Get weekly progress context
+            db = DatabaseManager()
+            milestones, steps = db.list_plan(active_goal['id'])
+            
+            # Calculate current week's progress
+            today = datetime.now().date()
+            week_start = today - timedelta(days=today.weekday())
+            week_end = week_start + timedelta(days=6)
+            
+            current_week_steps = []
+            for step in steps:
+                try:
+                    due_date = datetime.fromisoformat(step['due_date']).date()
+                    if week_start <= due_date <= week_end:
+                        current_week_steps.append(step)
+                except:
+                    current_week_steps.append(step)
+            
+            completed_this_week = [s for s in current_week_steps if s.get('status') == 'completed']
+            weekly_progress = (len(completed_this_week) / len(current_week_steps)) * 100 if current_week_steps else 0
+            
+            weekly_context = {
+                "total_weekly_steps": len(current_week_steps),
+                "completed_steps": len(completed_this_week),
+                "progress_percentage": weekly_progress,
+                "today_steps": [s for s in current_week_steps if s.get('suggested_day') == datetime.now().strftime('%A')]
+            }
+        else:
+            user_goal = user_profile.get('goal', 'Not specified')
+            user_tone = user_profile.get('tone', 'Gentle & Supportive')
+            user_situation = user_profile.get('situation', 'Not specified')
+            weekly_context = {}
+        
         # Prepare context for AI analysis
         context = {
-            "user_goal": user_profile.get('goal', 'Not specified'),
-            "user_tone": user_profile.get('tone', 'Gentle & Supportive'),
-            "user_situation": user_profile.get('situation', 'Not specified'),
+            "user_goal": user_goal,
+            "user_tone": user_tone,
+            "user_situation": user_situation,
             "time_period": time_period,
             "current_checkin": checkin_data[-1] if checkin_data else {},
+            "weekly_progress": weekly_context,
             "recent_patterns": {
                 "checkins_count": len(recent_checkins),
                 "moods_count": len(recent_moods),
@@ -109,6 +115,17 @@ def generate_checkin_analysis(user_profile, checkin_data, mood_data, time_period
         }
         
         # Create the analysis prompt
+        weekly_progress_text = ""
+        if context['weekly_progress']:
+            wp = context['weekly_progress']
+            weekly_progress_text = f"""
+WEEKLY PROGRESS CONTEXT:
+- Total steps this week: {wp['total_weekly_steps']}
+- Completed steps: {wp['completed_steps']}
+- Progress percentage: {wp['progress_percentage']:.0f}%
+- Steps scheduled for today: {len(wp['today_steps'])}
+"""
+
         prompt = f"""
 You are a compassionate productivity coach analyzing a user's daily check-in. Your role is to provide emotional support while offering deep insights that help them align with their goals.
 
@@ -117,7 +134,7 @@ USER CONTEXT:
 - Communication Style: {context['user_tone']}
 - Situation: {context['user_situation']}
 - Check-in Time: {context['time_period']}
-
+{weekly_progress_text}
 CURRENT CHECK-IN:
 {context['current_checkin']}
 
@@ -131,12 +148,13 @@ RECENT PATTERNS (Last 7 days):
 ANALYSIS REQUEST:
 Provide a personalized analysis that:
 1. Acknowledges their current state with empathy
-2. Connects their check-in to their main goal
+2. Connects their check-in to their main goal and weekly progress
 3. Identifies patterns and opportunities for improvement
-4. Offers specific, actionable suggestions
+4. Offers specific, actionable suggestions based on their weekly plan
 5. Maintains their preferred communication tone
+6. Celebrates progress or offers encouragement based on weekly completion rate
 
-Be warm, understanding, and deeply insightful. Focus on productivity and goal alignment while being emotionally supportive.
+Be warm, understanding, and deeply insightful. Focus on productivity and goal alignment while being emotionally supportive. Reference their weekly progress when relevant.
 """
         
         # Generate the analysis
@@ -145,14 +163,20 @@ Be warm, understanding, and deeply insightful. Focus on productivity and goal al
         
     except Exception as e:
         # Fallback to a simple analysis if AI fails
-        return f"Thank you for your {time_period} check-in! Your goal is to {user_profile.get('goal', 'improve your focus and productivity')}. Keep tracking your progress - every check-in brings you closer to your goals! 💪"
+        goal_text = active_goal.get('title', 'improve your focus and productivity') if active_goal else user_profile.get('goal', 'improve your focus and productivity')
+        return f"Thank you for your {time_period} check-in! Your goal is to {goal_text}. Keep tracking your progress - every check-in brings you closer to your goals! 💪"
 
 st.title("📝 Daily Check-in")
 
 # Load user profile
 user_profile = load_user_profile()
 
-if not user_profile:
+# Also check if user has an active goal (new onboarding system)
+db = DatabaseManager()
+user_email = get_user_email() or "me@example.com"
+active_goal = db.get_active_goal(user_email)
+
+if not user_profile and not active_goal:
     st.warning("Please complete onboarding first!")
     if st.button("🚀 Go to Onboarding", use_container_width=True):
         st.switch_page("pages/onboarding.py")
@@ -215,7 +239,193 @@ else:
     st.write(f"*{time_context}*")
     
     # Show goal reminder
-    st.write(f"🎯 **Your goal:** {user_profile.get('goal', 'Improve focus and productivity')}")
+    goal_text = active_goal.get('title', 'Improve focus and productivity') if active_goal else user_profile.get('goal', 'Improve focus and productivity')
+    st.write(f"🎯 **Your goal:** {goal_text}")
+    
+    # Show today's focus steps prominently at the top
+    if active_goal:
+        milestones, steps = db.list_plan(active_goal['id'])
+        if steps:
+            # Get today's steps based on suggested_day (not due_date)
+            today_name = current_time.strftime('%A')
+            today_steps = [s for s in steps if s.get('suggested_day') == today_name]
+            
+            # Also get current week's steps for the weekly view
+            today = datetime.now().date()
+            week_start = today - timedelta(days=today.weekday())
+            week_end = week_start + timedelta(days=6)
+            
+            current_week_steps = []
+            for step in steps:
+                try:
+                    due_date = datetime.fromisoformat(step['due_date']).date()
+                    if week_start <= due_date <= week_end:
+                        current_week_steps.append(step)
+                except:
+                    # If no due_date or invalid date, include step if it's scheduled for this week
+                    if step.get('suggested_day') in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']:
+                        current_week_steps.append(step)
+            
+            if today_steps:
+                st.markdown("### 🎯 Today's Focus Steps")
+                st.write(f"**You have {len(today_steps)} step(s) scheduled for today:**")
+                
+                completed_today = []
+                total_minutes = 0
+                
+                for i, step in enumerate(today_steps):
+                    col1, col2, col3 = st.columns([1, 3, 1])
+                    
+                    with col1:
+                        # Status indicator
+                        if step.get('status') == 'completed':
+                            st.write("✅")
+                        else:
+                            if st.checkbox("Complete", key=f"complete_{step['id']}", value=False, label_visibility="collapsed"):
+                                completed_today.append(step['id'])
+                    
+                    with col2:
+                        # Step details
+                        milestone_title = next((m['title'] for m in milestones if m['id'] == step['milestone_id']), 'Unknown')
+                        st.write(f"**{step['title']}**")
+                        st.write(f"*{milestone_title}* • {step['estimate_minutes']} min")
+                        
+                        # Show clean description
+                        description = step.get('description', '')
+                        if description:
+                            clean_description = description.replace('EXACTLY: ', '').replace(' - Break this down into specific, actionable steps.', '')
+                            main_instruction = clean_description.split('. ')[0]
+                            st.write(f"📋 {main_instruction}")
+                    
+                    with col3:
+                        # Time estimate
+                        st.write(f"⏱️ {step['estimate_minutes']}m")
+                        total_minutes += step['estimate_minutes']
+                    
+                    st.write("---")
+                
+                # Progress summary
+                completed_count = len([s for s in today_steps if s.get('status') == 'completed'])
+                progress_percentage = (completed_count / len(today_steps)) * 100
+                
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("Steps Today", f"{completed_count}/{len(today_steps)}")
+                with col2:
+                    st.metric("Progress", f"{progress_percentage:.0f}%")
+                with col3:
+                    st.metric("Time Needed", f"{total_minutes} min")
+                
+                # Progress bar
+                st.progress(progress_percentage / 100)
+                
+                # Completion button
+                if completed_today:
+                    if st.button("🎉 Mark Selected as Complete", type="primary", use_container_width=True):
+                        for step_id in completed_today:
+                            db.mark_step_status(step_id, "completed")
+                        st.success(f"🎉 Great job! Marked {len(completed_today)} step(s) as complete!")
+                        st.rerun()
+                
+                # Daily motivation based on progress
+                if progress_percentage == 100:
+                    st.success("🌟 **Perfect day!** You've completed all your planned steps!")
+                elif progress_percentage >= 75:
+                    st.success("🔥 **Almost there!** You're doing great today!")
+                elif progress_percentage >= 50:
+                    st.info("💪 **Good progress!** Keep the momentum going!")
+                elif progress_percentage >= 25:
+                    st.warning("📈 **Getting started!** Every step counts toward your goal!")
+                else:
+                    st.info("🚀 **Ready to tackle today's challenges!** You've got this!")
+                    
+                st.write("---")
+            else:
+                st.info("📅 **No specific steps scheduled for today.**")
+                st.write("This might be a rest day or you can choose to work on any step from your weekly plan!")
+                st.write("---")
+    
+    # Show current week's steps and progress
+    if active_goal:
+        milestones, steps = db.list_plan(active_goal['id'])
+        if steps:
+            # Get current week's steps (steps due this week)
+            today = datetime.now().date()
+            week_start = today - timedelta(days=today.weekday())
+            week_end = week_start + timedelta(days=6)
+            
+            current_week_steps = []
+            for step in steps:
+                try:
+                    due_date = datetime.fromisoformat(step['due_date']).date()
+                    if week_start <= due_date <= week_end:
+                        current_week_steps.append(step)
+                except:
+                    # If date parsing fails, include the step anyway
+                    current_week_steps.append(step)
+            
+            if current_week_steps:
+                st.markdown("### 📅 This Week's Action Steps")
+                
+                # Group steps by day
+                steps_by_day = {}
+                for step in current_week_steps:
+                    day = step.get('suggested_day', 'Monday')
+                    if day not in steps_by_day:
+                        steps_by_day[day] = []
+                    steps_by_day[day].append(step)
+                
+                # Show steps for each day
+                for day in ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']:
+                    if day in steps_by_day:
+                        day_steps = steps_by_day[day]
+                        with st.expander(f"📅 **{day}** ({len(day_steps)} steps)", expanded=(day == current_time.strftime('%A'))):
+                            for step in day_steps:
+                                # Check if step is completed
+                                status_icon = "✅" if step.get('status') == 'completed' else "⏳"
+                                st.write(f"{status_icon} **{step['title']}** ({step['estimate_minutes']} min)")
+                                
+                                # Show clean description
+                                description = step.get('description', '')
+                                if description:
+                                    # Clean up the description
+                                    clean_description = description.replace('EXACTLY: ', '').replace(' - Break this down into specific, actionable steps.', '')
+                                    main_instruction = clean_description.split('. ')[0]
+                                    st.write(f"   📋 {main_instruction}")
+                                
+                                # Show milestone context
+                                milestone_title = next((m['title'] for m in milestones if m['id'] == step['milestone_id']), 'Unknown')
+                                st.write(f"   🎯 *{milestone_title}*")
+                                st.write("---")
+                
+                # Show weekly progress summary
+                completed_steps = [s for s in current_week_steps if s.get('status') == 'completed']
+                progress_percentage = (len(completed_steps) / len(current_week_steps)) * 100 if current_week_steps else 0
+                
+                st.markdown("### 📊 Weekly Progress")
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("Steps Completed", f"{len(completed_steps)}/{len(current_week_steps)}")
+                with col2:
+                    st.metric("Progress", f"{progress_percentage:.0f}%")
+                with col3:
+                    total_minutes = sum(s['estimate_minutes'] for s in completed_steps)
+                    st.metric("Time Invested", f"{total_minutes} min")
+                
+                # Progress bar
+                st.progress(progress_percentage / 100)
+                
+                if progress_percentage == 100:
+                    st.success("🎉 Amazing! You've completed all your weekly steps!")
+                elif progress_percentage >= 75:
+                    st.success("🔥 Great progress! You're almost there!")
+                elif progress_percentage >= 50:
+                    st.info("💪 Good progress! Keep going!")
+                elif progress_percentage >= 25:
+                    st.warning("📈 You're getting started! Every step counts.")
+                else:
+                    st.info("🚀 Ready to tackle this week's challenges!")
+                
     
     # Show previous check-in context if available
     if previous_checkin:
@@ -230,16 +440,8 @@ else:
 
     
     with st.form("daily_checkin_form"):
-        # Step 1: Basic Info
-        st.subheader("📝 Step 1: Choose Your Check-in Mode")
-        
-        checkin_mode = st.radio(
-            "What would you like to do?",
-            ["📝 Just log my feelings", "🎯 Get help planning my day"],
-            help="Select 'Just log' for quick mood tracking, or 'Get help' for smart task planning"
-        )
-        
-        # User selected check-in mode
+        # Set default mode to always provide task planning help
+        checkin_mode = "🎯 Get help planning my day"
         
         # Morning flow (5 AM - 12 PM)
         if 5 <= current_hour < 12:
@@ -259,8 +461,8 @@ else:
             if yesterday_evening:
                 st.info(f"📝 **Yesterday's evening:** You felt {yesterday_evening.get('current_feeling', 'N/A')} and accomplished: {yesterday_evening.get('accomplishments', 'N/A')[:50]}...")
             
-            # Step 2: Goals & Energy
-            st.subheader("🎯 Step 2: Goals & Energy")
+            # Step 1: Goals & Energy
+            st.subheader("🎯 Step 1: Goals & Energy")
             
             # Time-aware sleep question
             if current_hour < 8:
@@ -305,8 +507,8 @@ else:
             if energy_level in ["Low", "Very low"]:
                 st.warning("💡 **Tip:** Consider a short walk, stretching, or a healthy breakfast to boost your energy!")
             
-            # Step 3: Additional Context
-            st.subheader("💭 Step 3: Additional Context")
+            # Step 2: Additional Context
+            st.subheader("💭 Step 2: Additional Context")
             
             # Current feeling
             current_feeling = st.selectbox(
@@ -339,6 +541,67 @@ else:
                 save_checkin_data(checkin_data)
                 st.success("✅ Morning check-in saved successfully!")
                 
+                # After saving today's check-in, compute plan alignment:
+                db = DatabaseManager()
+                user_email = get_user_email() or "me@example.com"
+                goal = db.get_active_goal(user_email)
+                if goal:
+                    st.subheader("📌 Today's Plan (Goal Alignment)")
+                    ai = AIService()
+                    today_str = datetime.now().date().isoformat()
+                    candidates = db.get_today_candidates(user_email, today_str)
+                    # build context (extend with your mood history if available)
+                    context = {
+                        "goal": goal,
+                        "steps_today_candidates": candidates,
+                        "checkin": {
+                            "timestamp": datetime.now().isoformat(),
+                            # include any mood/energy fields you capture already:
+                            "energy_level": energy_level,
+                            "focus_today": focus_today,
+                            "current_feeling": current_feeling,
+                        }
+                    }
+                    choice = ai.choose_today_steps(context, user_email) or {}
+                    alignment = int(choice.get("alignment_score", 60))
+                    selected = choice.get("today_steps", [])
+                    adjustments = choice.get("adjustments", [])
+                    why = choice.get("why","Keeping it small to maintain momentum.")
+
+                    colA, colB = st.columns([2,1])
+                    with colA:
+                        st.write("**Suggested steps for today:**")
+                        checked = []
+                        for s in selected:
+                            if st.checkbox(s["title"], key=f"step_{s['step_id']}"):
+                                checked.append(s["step_id"])
+                        if checked:
+                            # Store completed steps in session state for processing outside form
+                            st.session_state['pending_completions'] = checked
+                            st.info(f"✅ {len(checked)} step(s) selected for completion")
+                    with colB:
+                        hue = "🟢" if alignment >= 70 else ("🟡" if alignment >= 40 else "🔴")
+                        st.metric("Alignment", f"{hue} {alignment}%")
+                        with st.expander("Why this today?"):
+                            st.write(why)
+                            if adjustments:
+                                st.caption("Adjustments: " + "; ".join(adjustments))
+
+                    # Skip reasons + Adaptation loop
+                    skipped = [s for s in selected if not st.session_state.get(f"step_{s['step_id']}")]
+                    if skipped:
+                        st.divider()
+                        st.caption("Skipped a step? Tell us why (helps adapt your plan):")
+                        reason = st.selectbox("Reason", ["Low energy","No time","Confusing next step","Fear/avoidance","External interruption","Other"])
+                        # Store skip data in session state for processing outside form
+                        st.session_state['pending_skips'] = {
+                            'skipped': skipped,
+                            'reason': reason,
+                            'candidates': candidates
+                        }
+                else:
+                    st.info("Define a main goal in Onboarding to get aligned daily steps.")
+                
                 # Completion celebration
                 st.success("🎉 **Check-in Complete!** You've successfully completed your morning check-in!")
                 
@@ -359,7 +622,7 @@ else:
                 st.write("---")
                 st.subheader("🤖 Personalized Insights")
                 with st.spinner("🧠 Analyzing your check-in against your goals and patterns..."):
-                    analysis = generate_checkin_analysis(user_profile, checkin_data, mood_data, "morning")
+                    analysis = generate_checkin_analysis(user_profile, checkin_data, mood_data, "morning", active_goal)
                     st.write(analysis)
                 
                 # Feedback prompt after successful check-in
@@ -367,14 +630,12 @@ else:
                 st.info("💬 **How was this check-in experience?**")
                 col1, col2, col3 = st.columns(3)
                 with col1:
-                    if st.button("👍 Great!", key="feedback_good_morning"):
-                        st.success("Thanks! We're glad it's working well for you! 🙏")
+                    if st.radio("How was this check-in?", ["👍 Great!", "🤔 Could be better", "📝 Share detailed feedback"], key="feedback_morning", horizontal=True):
+                        st.session_state['morning_feedback'] = st.session_state['feedback_morning']
                 with col2:
-                    if st.button("🤔 Could be better", key="feedback_ok_morning"):
-                        st.info("We'd love to hear your suggestions! [📝 Feedback Form](https://tally.so/r/mBr11Q)")
+                    st.write("")  # Empty space
                 with col3:
-                    if st.button("📝 Share detailed feedback", key="feedback_detailed_morning"):
-                        st.markdown("**[📋 Open Feedback Form](https://tally.so/r/mBr11Q)**")
+                    st.write("")  # Empty space
                 
                 # Generate smart task plan if user requested help
                 if checkin_mode == "🎯 Get help planning my day":
@@ -445,8 +706,8 @@ else:
             if morning_checkin:
                 st.info(f"📝 **This morning:** You planned to focus on: {morning_checkin.get('focus_today', 'N/A')} and your energy was {morning_checkin.get('energy_level', 'N/A')}")
             
-            # Step 2: Goals & Energy
-            st.subheader("🎯 Step 2: Goals & Energy")
+            # Step 1: Goals & Energy
+            st.subheader("🎯 Step 1: Goals & Energy")
             
             # Energy level for afternoon
             energy_level = st.selectbox(
@@ -511,8 +772,8 @@ else:
             elif take_break == "No, I'm in the zone":
                 st.success("🚀 **Flow state!** Enjoy your productive momentum!")
             
-            # Step 3: Additional Context
-            st.subheader("💭 Step 3: Additional Context")
+            # Step 2: Additional Context
+            st.subheader("💭 Step 2: Additional Context")
             
             # Optional notes field
             additional_notes = st.text_area(
@@ -541,6 +802,67 @@ else:
                 save_checkin_data(checkin_data)
                 st.success("✅ Afternoon check-in saved successfully!")
                 
+                # After saving today's check-in, compute plan alignment:
+                db = DatabaseManager()
+                user_email = get_user_email() or "me@example.com"
+                goal = db.get_active_goal(user_email)
+                if goal:
+                    st.subheader("📌 Today's Plan (Goal Alignment)")
+                    ai = AIService()
+                    today_str = datetime.now().date().isoformat()
+                    candidates = db.get_today_candidates(user_email, today_str)
+                    # build context (extend with your mood history if available)
+                    context = {
+                        "goal": goal,
+                        "steps_today_candidates": candidates,
+                        "checkin": {
+                            "timestamp": datetime.now().isoformat(),
+                            # include any mood/energy fields you capture already:
+                            "energy_level": energy_level,
+                            "focus_today": focus_today,
+                            "current_feeling": current_feeling,
+                        }
+                    }
+                    choice = ai.choose_today_steps(context, user_email) or {}
+                    alignment = int(choice.get("alignment_score", 60))
+                    selected = choice.get("today_steps", [])
+                    adjustments = choice.get("adjustments", [])
+                    why = choice.get("why","Keeping it small to maintain momentum.")
+
+                    colA, colB = st.columns([2,1])
+                    with colA:
+                        st.write("**Suggested steps for today:**")
+                        checked = []
+                        for s in selected:
+                            if st.checkbox(s["title"], key=f"step_{s['step_id']}"):
+                                checked.append(s["step_id"])
+                        if checked:
+                            # Store completed steps in session state for processing outside form
+                            st.session_state['pending_completions'] = checked
+                            st.info(f"✅ {len(checked)} step(s) selected for completion")
+                    with colB:
+                        hue = "🟢" if alignment >= 70 else ("🟡" if alignment >= 40 else "🔴")
+                        st.metric("Alignment", f"{hue} {alignment}%")
+                        with st.expander("Why this today?"):
+                            st.write(why)
+                            if adjustments:
+                                st.caption("Adjustments: " + "; ".join(adjustments))
+
+                    # Skip reasons + Adaptation loop
+                    skipped = [s for s in selected if not st.session_state.get(f"step_{s['step_id']}")]
+                    if skipped:
+                        st.divider()
+                        st.caption("Skipped a step? Tell us why (helps adapt your plan):")
+                        reason = st.selectbox("Reason", ["Low energy","No time","Confusing next step","Fear/avoidance","External interruption","Other"])
+                        # Store skip data in session state for processing outside form
+                        st.session_state['pending_skips'] = {
+                            'skipped': skipped,
+                            'reason': reason,
+                            'candidates': candidates
+                        }
+                else:
+                    st.info("Define a main goal in Onboarding to get aligned daily steps.")
+                
                 # Completion celebration
                 st.success("🎉 **Check-in Complete!** You've successfully completed your afternoon check-in!")
                 
@@ -562,7 +884,7 @@ else:
                 st.write("---")
                 st.subheader("🤖 Personalized Insights")
                 with st.spinner("🧠 Analyzing your progress against your goals and patterns..."):
-                    analysis = generate_checkin_analysis(user_profile, checkin_data, mood_data, "afternoon")
+                    analysis = generate_checkin_analysis(user_profile, checkin_data, mood_data, "afternoon", active_goal)
                     st.write(analysis)
                 
                 # Generate smart task plan if user requested help
@@ -640,8 +962,8 @@ else:
                     journey_summary += f"• Afternoon was {afternoon_checkin.get('day_progress', 'N/A')}"
                 st.info(journey_summary)
             
-            # Step 2: Goals & Energy
-            st.subheader("🎯 Step 2: Goals & Energy")
+            # Step 1: Goals & Energy
+            st.subheader("🎯 Step 1: Goals & Energy")
             
             # Energy level for evening
             energy_level = st.selectbox(
@@ -695,8 +1017,8 @@ else:
             elif current_feeling == "Accomplished":
                 st.success("🎉 **Great job today!** You should be proud of your accomplishments!")
             
-            # Step 3: Additional Context
-            st.subheader("💭 Step 3: Additional Context")
+            # Step 2: Additional Context
+            st.subheader("💭 Step 2: Additional Context")
             
             # Tomorrow preparation
             if current_hour < 22:
@@ -731,6 +1053,67 @@ else:
                 save_checkin_data(checkin_data)
                 st.success("✅ Evening check-in saved successfully!")
                 
+                # After saving today's check-in, compute plan alignment:
+                db = DatabaseManager()
+                user_email = get_user_email() or "me@example.com"
+                goal = db.get_active_goal(user_email)
+                if goal:
+                    st.subheader("📌 Today's Plan (Goal Alignment)")
+                    ai = AIService()
+                    today_str = datetime.now().date().isoformat()
+                    candidates = db.get_today_candidates(user_email, today_str)
+                    # build context (extend with your mood history if available)
+                    context = {
+                        "goal": goal,
+                        "steps_today_candidates": candidates,
+                        "checkin": {
+                            "timestamp": datetime.now().isoformat(),
+                            # include any mood/energy fields you capture already:
+                            "energy_level": energy_level,
+                            "focus_today": focus_today,
+                            "current_feeling": current_feeling,
+                        }
+                    }
+                    choice = ai.choose_today_steps(context, user_email) or {}
+                    alignment = int(choice.get("alignment_score", 60))
+                    selected = choice.get("today_steps", [])
+                    adjustments = choice.get("adjustments", [])
+                    why = choice.get("why","Keeping it small to maintain momentum.")
+
+                    colA, colB = st.columns([2,1])
+                    with colA:
+                        st.write("**Suggested steps for today:**")
+                        checked = []
+                        for s in selected:
+                            if st.checkbox(s["title"], key=f"step_{s['step_id']}"):
+                                checked.append(s["step_id"])
+                        if checked:
+                            # Store completed steps in session state for processing outside form
+                            st.session_state['pending_completions'] = checked
+                            st.info(f"✅ {len(checked)} step(s) selected for completion")
+                    with colB:
+                        hue = "🟢" if alignment >= 70 else ("🟡" if alignment >= 40 else "🔴")
+                        st.metric("Alignment", f"{hue} {alignment}%")
+                        with st.expander("Why this today?"):
+                            st.write(why)
+                            if adjustments:
+                                st.caption("Adjustments: " + "; ".join(adjustments))
+
+                    # Skip reasons + Adaptation loop
+                    skipped = [s for s in selected if not st.session_state.get(f"step_{s['step_id']}")]
+                    if skipped:
+                        st.divider()
+                        st.caption("Skipped a step? Tell us why (helps adapt your plan):")
+                        reason = st.selectbox("Reason", ["Low energy","No time","Confusing next step","Fear/avoidance","External interruption","Other"])
+                        # Store skip data in session state for processing outside form
+                        st.session_state['pending_skips'] = {
+                            'skipped': skipped,
+                            'reason': reason,
+                            'candidates': candidates
+                        }
+                else:
+                    st.info("Define a main goal in Onboarding to get aligned daily steps.")
+                
                 # Completion celebration
                 st.success("🎉 **Check-in Complete!** You've successfully completed your evening check-in!")
                 
@@ -752,7 +1135,7 @@ else:
                 st.write("---")
                 st.subheader("🤖 Personalized Insights")
                 with st.spinner("🧠 Analyzing your day against your goals and patterns..."):
-                    analysis = generate_checkin_analysis(user_profile, checkin_data, mood_data, "evening")
+                    analysis = generate_checkin_analysis(user_profile, checkin_data, mood_data, "evening", active_goal)
                     st.write(analysis)
                 
                 # Generate smart task plan if user requested help
@@ -807,3 +1190,167 @@ else:
                     checkin_data['task_plan'] = task_plan
                     checkin_data['task_completion'] = task_completion
                     save_checkin_data(checkin_data)
+
+# Handle pending skips (outside of forms)
+if 'pending_skips' in st.session_state:
+    pending = st.session_state['pending_skips']
+    st.markdown("---")
+    st.markdown("### 📝 Record Skipped Steps")
+    
+    col1, col2 = st.columns([2, 1])
+    with col1:
+        st.write(f"**Skipped {len(pending['skipped'])} step(s):**")
+        for s in pending['skipped']:
+            st.write(f"• {s['title']}")
+        st.write(f"**Reason:** {pending['reason']}")
+    
+    with col2:
+        if st.button("Record Skip & Adapt Plan", type="primary"):
+            # Process the skips
+            for s in pending['skipped']:
+                db.mark_step_status(s["step_id"], "skipped")
+            
+            # Adapt the plan
+            adapt_ctx = {
+                "goal": active_goal,
+                "skipped": pending['skipped'],
+                "reason": pending['reason'],
+                "recent_candidates": pending['candidates'],
+            }
+            
+            try:
+                if ai_service:
+                    change = ai_service.adapt_plan(adapt_ctx, user_email) or {"change_summary": "No change", "diff": []}
+                    try:
+                        diff_json = json.dumps(change.get("diff", []))
+                    except Exception:
+                        diff_json = "[]"
+                    db.record_adaptation(active_goal["id"], datetime.now().isoformat(), 0, pending['reason'], change.get("change_summary",""), diff_json)
+                    st.success("✅ Plan adapted! Check your plan page for updates.")
+                else:
+                    st.info("📝 Skipped step recorded. Plan will adapt over time.")
+            except Exception as e:
+                st.error(f"Error adapting plan: {e}")
+                st.info("📝 Skipped step recorded. Plan will adapt over time.")
+            
+            # Clear the pending skips
+            del st.session_state['pending_skips']
+            st.rerun()
+
+# Handle pending completions (outside of forms)
+if 'pending_completions' in st.session_state:
+    pending = st.session_state['pending_completions']
+    st.markdown("---")
+    st.markdown("### ✅ Complete Selected Steps")
+    
+    col1, col2 = st.columns([2, 1])
+    with col1:
+        st.write(f"**{len(pending)} step(s) ready to mark as complete:**")
+        # Get step details for display
+        if active_goal:
+            milestones, steps = db.list_plan(active_goal['id'])
+            for step_id in pending:
+                step = next((s for s in steps if s['id'] == step_id), None)
+                if step:
+                    st.write(f"• {step['title']}")
+    
+    with col2:
+        if st.button("🎉 Mark as Complete", type="primary"):
+            # Process the completions
+            for step_id in pending:
+                db.mark_step_status(step_id, "completed")
+            
+            st.success(f"🎉 Great job! Marked {len(pending)} step(s) as complete!")
+            
+            # Clear the pending completions
+            del st.session_state['pending_completions']
+            st.rerun()
+
+# Handle feedback (outside of forms)
+if 'morning_feedback' in st.session_state:
+    feedback = st.session_state['morning_feedback']
+    st.markdown("---")
+    st.markdown("### 💬 Feedback Response")
+    
+    if feedback == "👍 Great!":
+        st.success("Thanks! We're glad it's working well for you! 🙏")
+    elif feedback == "🤔 Could be better":
+        st.info("We'd love to hear your suggestions! [📝 Feedback Form](https://tally.so/r/mBr11Q)")
+    elif feedback == "📝 Share detailed feedback":
+        st.markdown("**[📋 Open Feedback Form](https://tally.so/r/mBr11Q)**")
+    
+    if st.button("Clear Feedback", key="clear_feedback"):
+        del st.session_state['morning_feedback']
+        st.rerun()
+
+# Daily Goal Reflection (outside of forms)
+if active_goal:
+    st.markdown("---")
+    st.markdown("### 🎯 Daily Goal Reflection")
+    
+    # Show goal reminder
+    goal_title = active_goal.get('title', 'Your goal')
+    goal_why = active_goal.get('why_matters', 'Not specified')
+    
+    st.write(f"**Your Goal:** {goal_title}")
+    st.write(f"**Why this matters:** {goal_why}")
+    
+    # Daily reflection questions
+    with st.expander("💭 Reflect on Today's Progress", expanded=False):
+        st.write("**How did today's actions move you closer to your goal?**")
+        
+        # Get today's completed steps
+        milestones, steps = db.list_plan(active_goal['id'])
+        today = datetime.now().date()
+        week_start = today - timedelta(days=today.weekday())
+        week_end = week_start + timedelta(days=6)
+        
+        current_week_steps = []
+        for step in steps:
+            try:
+                due_date = datetime.fromisoformat(step['due_date']).date()
+                if week_start <= due_date <= week_end:
+                    current_week_steps.append(step)
+            except:
+                current_week_steps.append(step)
+        
+        today_steps = [s for s in current_week_steps if s.get('suggested_day') == current_time.strftime('%A')]
+        completed_today = [s for s in today_steps if s.get('status') == 'completed']
+        
+        if completed_today:
+            st.write("**✅ Steps you completed today:**")
+            for step in completed_today:
+                milestone_title = next((m['title'] for m in milestones if m['id'] == step['milestone_id']), 'Unknown')
+                st.write(f"• {step['title']} - *{milestone_title}*")
+            
+            st.write("**🤔 Reflection questions:**")
+            st.write("• How do these completed steps connect to your bigger goal?")
+            st.write("• What did you learn or discover today?")
+            st.write("• What would you do differently tomorrow?")
+        else:
+            st.write("**📝 No specific steps completed today.**")
+            st.write("**🤔 Reflection questions:**")
+            st.write("• What did you do today that might help your goal?")
+            st.write("• What obstacles did you face?")
+            st.write("• How can you make tomorrow more productive?")
+
+# Step completion section (outside of forms)
+if active_goal:
+    milestones, steps = db.list_plan(active_goal['id'])
+    if steps:
+        # Get current week's steps
+        today = datetime.now().date()
+        week_start = today - timedelta(days=today.weekday())
+        week_end = week_start + timedelta(days=6)
+        
+        current_week_steps = []
+        for step in steps:
+            try:
+                due_date = datetime.fromisoformat(step['due_date']).date()
+                if week_start <= due_date <= week_end:
+                    current_week_steps.append(step)
+            except:
+                current_week_steps.append(step)
+        
+        if current_week_steps:
+            st.markdown("---")

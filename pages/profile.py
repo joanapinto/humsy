@@ -6,6 +6,7 @@ User profile management, goals, and feedback
 import streamlit as st
 from auth import require_beta_access, get_user_email
 from data.storage import load_user_profile, save_user_profile
+from data.database import DatabaseManager
 from datetime import datetime
 
 # Require beta access
@@ -39,44 +40,9 @@ hide_streamlit_navigation = """
 """
 st.markdown(hide_streamlit_navigation, unsafe_allow_html=True)
 
-# Custom navigation sidebar
-with st.sidebar:
-    st.subheader("🧭 Navigation")
-    
-    # Main pages
-    if st.button("🏠 Home", use_container_width=True):
-        st.switch_page("app.py")
-    
-    if st.button("👤 Profile", use_container_width=True):
-        st.switch_page("pages/profile.py")
-    
-    if st.button("📝 Daily Check-in", use_container_width=True):
-        st.switch_page("pages/daily_checkin.py")
-    
-    if st.button("😊 Mood Tracker", use_container_width=True):
-        st.switch_page("pages/mood_tracker.py")
-    
-    if st.button("🌱 Weekly Reflection", use_container_width=True):
-        st.switch_page("pages/reflection.py")
-    
-    if st.button("📊 Insights", use_container_width=True):
-        st.switch_page("pages/history.py")
-    
-    st.write("---")
-    
-    # Admin insights access
-    user_email = get_user_email()
-    if user_email == "joanapnpinto@gmail.com":
-        st.subheader("🔓 Admin Tools")
-        if st.button("📊 Database Insights", use_container_width=True):
-            st.switch_page("pages/insights.py")
-    
-    st.write("---")
-    
-    # Logout
-    if st.button("🚪 Logout", use_container_width=True):
-        from auth import logout
-        logout()
+# Standard navigation sidebar
+from shared_sidebar import show_standard_sidebar
+show_standard_sidebar()
 
 def main():
     st.title("👤 Your Profile")
@@ -85,7 +51,11 @@ def main():
     user_email = get_user_email()
     user_profile = load_user_profile()
     
-    if not user_profile:
+    # Also check if user has an active goal (new onboarding system)
+    db = DatabaseManager()
+    active_goal = db.get_active_goal(user_email)
+    
+    if not user_profile and not active_goal:
         st.warning("No profile found. Please complete onboarding first.")
         if st.button("🚀 Go to Onboarding"):
             st.switch_page("pages/onboarding.py")
@@ -98,8 +68,11 @@ def main():
         st.subheader("📋 Profile Information")
         st.write(f"**Email:** {user_email}")
         
+        # Use active_goal data if available, otherwise fall back to user_profile
+        profile_data = active_goal if active_goal else user_profile
+        
         # Member since date
-        member_since = user_profile.get('created_at', user_profile.get('member_since'))
+        member_since = profile_data.get('created_at', profile_data.get('member_since')) if profile_data else None
         if member_since:
             try:
                 # Try to parse the date if it's a string
@@ -115,19 +88,51 @@ def main():
         else:
             st.write("**Member since:** Unknown")
         
-        # Current situation
+        # Current goal
         st.write("---")
-        st.subheader("🎯 Current Situation")
-        situation = user_profile.get('situation', 'Not specified')
-        situation_other = user_profile.get('situation_other', '')
+        st.subheader("🎯 Current Goal")
+        goal = profile_data.get('title', profile_data.get('goal', 'Not specified')) if profile_data else 'Not specified'
+        st.write(f"**Goal:** {goal}")
         
-        if situation == "Other" and situation_other:
-            current_situation = situation_other
-        else:
-            current_situation = situation
-            
-        st.write(f"**How would you describe your current situation?**")
-        st.info(current_situation)
+        # Why it matters
+        why_matters = profile_data.get('why_matters', 'Not specified') if profile_data else 'Not specified'
+        if why_matters and why_matters != 'Not specified':
+            st.write(f"**Why this matters:** {why_matters}")
+        
+        # Starting point
+        starting_point = profile_data.get('starting_point', 'Not specified') if profile_data else 'Not specified'
+        if starting_point and starting_point != 'Not specified':
+            st.write(f"**Starting Point:** {starting_point}")
+        
+        # Joy sources
+        joy_sources = profile_data.get('joy_sources', [])
+        if joy_sources:
+            st.write(f"**What brings you joy:** {', '.join(joy_sources) if isinstance(joy_sources, list) else joy_sources}")
+        
+        # Energy drainers
+        energy_drainers = profile_data.get('energy_drainers', [])
+        if energy_drainers:
+            st.write(f"**What drains your energy:** {', '.join(energy_drainers) if isinstance(energy_drainers, list) else energy_drainers}")
+        
+        # Therapy/coaching
+        therapy_coaching = profile_data.get('therapy_coaching', 'Not specified')
+        if therapy_coaching and therapy_coaching != 'Not specified':
+            st.write(f"**Professional Support:** {therapy_coaching}")
+        
+        # Obstacles
+        obstacles = profile_data.get('obstacles', 'Not specified')
+        if obstacles and obstacles != 'Not specified':
+            st.write(f"**Potential Obstacles:** {obstacles}")
+        
+        # Resources
+        resources = profile_data.get('resources', 'Not specified')
+        if resources and resources != 'Not specified':
+            st.write(f"**Available Resources:** {resources}")
+        
+        # Reminders
+        reminders = profile_data.get('reminders', 'Not specified')
+        if reminders and reminders != 'Not specified':
+            st.write(f"**Reminder Preferences:** {reminders}")
     
     with col2:
         st.subheader("📊 Quick Stats")
@@ -136,12 +141,34 @@ def main():
     
     # Editable Goal Section
     st.write("---")
-    st.subheader("🎯 Your Goal")
+    st.subheader("🎯 Your Goal Details")
     
     col1, col2 = st.columns([3, 1])
     with col1:
-        current_goal = user_profile.get('goal', 'Not set')
+        current_goal = profile_data.get('title', profile_data.get('goal', 'Not set')) if profile_data else 'Not set'
         st.write(f"**Current Goal:** {current_goal}")
+        
+        # Show additional goal details if available
+        if profile_data:
+            deadline = profile_data.get('deadline', 'Not specified')
+            if deadline and deadline != 'Not specified':
+                st.write(f"**Target Date:** {deadline}")
+            
+            weekly_time = profile_data.get('weekly_time', 'Not specified')
+            if weekly_time and weekly_time != 'Not specified':
+                st.write(f"**Weekly Time Commitment:** {weekly_time}")
+            
+            energy_time = profile_data.get('energy_time', 'Not specified')
+            if energy_time and energy_time != 'Not specified':
+                st.write(f"**Peak Energy Time:** {energy_time}")
+            
+            free_days = profile_data.get('free_days', 'Not specified')
+            if free_days and free_days != 'Not specified':
+                st.write(f"**Preferred Free Days:** {free_days}")
+            
+            intensity = profile_data.get('intensity', 'Not specified')
+            if intensity and intensity != 'Not specified':
+                st.write(f"**Intensity Preference:** {intensity}")
     
     with col2:
         if st.button("✏️ Edit Goal", use_container_width=True):
@@ -178,41 +205,67 @@ def main():
     st.write("---")
     st.subheader("📝 Your Onboarding Answers")
     
-    # Energy drainers
-    st.write("**What drains your energy?**")
-    energy_drainers = user_profile.get('energy_drainers', [])
-    energy_drainer_other = user_profile.get('energy_drainer_other', '')
-    
-    if energy_drainers:
-        for drainer in energy_drainers:
-            st.write(f"• {drainer}")
-        if energy_drainer_other:
-            st.write(f"• {energy_drainer_other}")
+    # Use profile_data (active_goal or user_profile) for all onboarding answers
+    if profile_data:
+        # Energy drainers
+        st.write("**What drains your energy?**")
+        energy_drainers = profile_data.get('energy_drainers', [])
+        energy_drainer_other = profile_data.get('energy_drainer_other', '')
+        
+        if energy_drainers:
+            for drainer in energy_drainers:
+                st.write(f"• {drainer}")
+            if energy_drainer_other:
+                st.write(f"• {energy_drainer_other}")
+        else:
+            st.info("No energy drainers specified")
+        
+        # Energy boosters (joy sources)
+        st.write("**What gives you energy?**")
+        joy_sources = profile_data.get('joy_sources', [])
+        joy_other = profile_data.get('joy_other', '')
+        
+        if joy_sources:
+            for source in joy_sources:
+                st.write(f"• {source}")
+            if joy_other:
+                st.write(f"• {joy_other}")
+        else:
+            st.info("No energy sources specified")
+        
+        # Stress triggers (using energy drainers as stress indicators)
+        st.write("**What stresses you out?**")
+        if energy_drainers:
+            for drainer in energy_drainers:
+                st.write(f"• {drainer}")
+            if energy_drainer_other:
+                st.write(f"• {energy_drainer_other}")
+        else:
+            st.info("No stress triggers specified")
+        
+        # Additional onboarding answers
+        st.write("**Professional Support:**")
+        therapy_coaching = profile_data.get('therapy_coaching', 'Not specified')
+        st.write(f"• {therapy_coaching}")
+        
+        st.write("**Potential Obstacles:**")
+        obstacles = profile_data.get('obstacles', 'Not specified')
+        st.write(f"• {obstacles}")
+        
+        st.write("**Available Resources:**")
+        resources = profile_data.get('resources', 'Not specified')
+        st.write(f"• {resources}")
+        
+        st.write("**Reminder Preferences:**")
+        reminders = profile_data.get('reminders', 'Not specified')
+        st.write(f"• {reminders}")
+        
+        st.write("**Intensity Preference:**")
+        intensity = profile_data.get('intensity', 'Not specified')
+        st.write(f"• {intensity}")
+        
     else:
-        st.info("No energy drainers specified")
-    
-    # Energy boosters (joy sources)
-    st.write("**What gives you energy?**")
-    joy_sources = user_profile.get('joy_sources', [])
-    joy_other = user_profile.get('joy_other', '')
-    
-    if joy_sources:
-        for source in joy_sources:
-            st.write(f"• {source}")
-        if joy_other:
-            st.write(f"• {joy_other}")
-    else:
-        st.info("No energy sources specified")
-    
-    # Stress triggers (using energy drainers as stress indicators)
-    st.write("**What stresses you out?**")
-    if energy_drainers:
-        for drainer in energy_drainers:
-            st.write(f"• {drainer}")
-        if energy_drainer_other:
-            st.write(f"• {energy_drainer_other}")
-    else:
-        st.info("No stress triggers specified")
+        st.info("No onboarding data available. Please complete onboarding first.")
     
     # Edit onboarding answers button
     if st.button("✏️ Edit Onboarding Answers", use_container_width=True):
@@ -243,7 +296,8 @@ def main():
     
     with col3:
         if st.button("💡 Suggest Feature", use_container_width=True):
-            st.info("💡 **Feature Request**\n\nGreat idea! Please use the feedback form above and describe:\n- What feature you'd like\n- Why it would be helpful\n- How you'd use it")
+            st.markdown("**[💡 Open Feature Suggestion Form](https://tally.so/r/mROLG4)**")
+            st.info("💡 **Feature Suggestion**\n\nHave an idea for a new feature? We'd love to hear it! Share your thoughts on what could make Humsy even better.")
     
     # Beta Tester Guide
     st.write("---")

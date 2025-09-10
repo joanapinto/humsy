@@ -10,6 +10,7 @@ project_root = current_file.parent.parent
 sys.path.insert(0, str(project_root))
 
 from data.storage import save_user_profile, load_user_profile
+from data.database import DatabaseManager
 from auth import require_beta_access, get_user_email
 
 st.set_page_config(page_title="Humsy - Reflection", page_icon="🤔")
@@ -35,44 +36,9 @@ hide_streamlit_navigation = """
 """
 st.markdown(hide_streamlit_navigation, unsafe_allow_html=True)
 
-# Custom navigation sidebar
-with st.sidebar:
-    st.subheader("🧭 Navigation")
-    
-    # Main pages
-    if st.button("🏠 Home", use_container_width=True):
-        st.switch_page("app.py")
-    
-    if st.button("👤 Profile", use_container_width=True):
-        st.switch_page("pages/profile.py")
-    
-    if st.button("📝 Daily Check-in", use_container_width=True):
-        st.switch_page("pages/daily_checkin.py")
-    
-    if st.button("😊 Mood Tracker", use_container_width=True):
-        st.switch_page("pages/mood_tracker.py")
-    
-    if st.button("🌱 Weekly Reflection", use_container_width=True):
-        st.switch_page("pages/reflection.py")
-    
-    if st.button("📊 Insights", use_container_width=True):
-        st.switch_page("pages/history.py")
-    
-    st.write("---")
-    
-    # Admin insights access
-    user_email = get_user_email()
-    if user_email == "joanapnpinto@gmail.com":
-        st.subheader("🔓 Admin Tools")
-        if st.button("📊 Database Insights", use_container_width=True):
-            st.switch_page("pages/insights.py")
-    
-    st.write("---")
-    
-    # Logout
-    if st.button("🚪 Logout", use_container_width=True):
-        from auth import logout
-        logout()
+# Standard navigation sidebar
+from shared_sidebar import show_standard_sidebar
+show_standard_sidebar()
 
 # Require beta access
 require_beta_access()
@@ -82,7 +48,12 @@ st.title("🤔 Weekly Reflection")
 # Load user profile
 user_profile = load_user_profile()
 
-if not user_profile:
+# Also check if user has an active goal (new onboarding system)
+db = DatabaseManager()
+user_email = get_user_email() or "me@example.com"
+active_goal = db.get_active_goal(user_email)
+
+if not user_profile and not active_goal:
     st.warning("Please complete onboarding first!")
     if st.button("🚀 Go to Onboarding", use_container_width=True):
         st.switch_page("pages/onboarding.py")

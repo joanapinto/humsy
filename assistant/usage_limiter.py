@@ -78,8 +78,9 @@ class UsageLimiter:
         Returns (allowed, reason)
         """
         # Admin user bypass - unlimited access for testing
-        ADMIN_EMAIL = "joanapnpinto@gmail.com"
-        if user_email == ADMIN_EMAIL:
+        from auth import get_admin_email
+        admin_email = get_admin_email()
+        if user_email == admin_email:
             return True, "Admin user - unlimited access"
         
         # Get usage from database

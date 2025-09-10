@@ -10,29 +10,59 @@ A comprehensive focus and wellness tracking application that helps you manage yo
 
 ## ✨ Features
 
-### 🎯 **Smart Daily Check-ins**
-Time-based check-in flows that adapt to your day with persistent data storage:
+### 🎯 **Comprehensive Goal Planning System** - **ENHANCED**
+Complete goal-to-action planning with AI-powered personalization:
+
+- **🗺️ Goal → Milestones → Steps Planning**
+  - **15-Question Onboarding** - Comprehensive goal setup with mandatory (*) and optional fields
+  - **AI-Powered Plan Generation** - Ultra-detailed, personalized milestones and actionable steps
+  - **Smart Scheduling** - Steps scheduled based on your energy patterns and availability
+  - **Intensity Matching** - Plans adapt to your chosen intensity (Gentle/Balanced/Ambitious)
+  - **Resource Integration** - Leverages your existing tools and resources
+  - **Obstacle Anticipation** - Proactive planning around potential challenges
+  - **Realistic Timeline Generation** - Plans start from today with realistic deadlines
+  - **Ultra-Explicit Step Descriptions** - Every step includes detailed instructions, duration, and effort level
+
+- **📊 Plan Visualization & Management**
+  - **Interactive Plan Page** - View milestones, steps, and progress with beautiful formatting
+  - **Goal Context Display** - See your why, success metrics, and personal context
+  - **Auto-Adaptation Settings** - Choose whether plans adapt when you skip tasks
+  - **Progress Tracking** - Visual progress through milestones and steps
+  - **Weekly Schedule View** - See your plan organized by days of the week
+  - **Plan Optimization Display** - Shows how your plan respects your time and energy constraints
+  - **Recent Adaptations Table** - Beautiful table showing plan changes with formatted dates
+
+### 🌅 **Smart Daily Check-ins with Goal Alignment** - **ENHANCED**
+Time-based check-in flows that adapt to your day and align with your goals:
 
 - **🌅 Morning (5 AM - 12 PM)**
   - Sleep quality assessment
   - Daily focus planning
   - Energy level evaluation
   - Current feeling tracking
-  - **AI-Powered Task Planning** - Personalized daily plans based on your energy, mood, and goals
+  - **🎯 Goal-Aligned Task Suggestions** - AI selects 1-3 steps from your plan based on energy and mood
+  - **📊 Alignment Scoring** - See how well today's tasks align with your goal (0-100%)
 
 - **☀️ Afternoon (12 PM - 6 PM)**
   - Day progress tracking
   - Plan adjustment suggestions
   - Break reminders
   - Energy level and focus assessment
-  - **Data continuity** - Build complete daily patterns
+  - **🔄 Plan Adaptation** - System learns from skipped tasks and adapts your plan
 
 - **🌆 Evening (6 PM - 5 AM)**
   - Accomplishment review
   - Challenge identification
   - End-of-day reflection
   - Tomorrow's focus planning
-  - **Historical tracking** - Review progress over time
+  - **📈 Progress Analysis** - Review goal progress and plan effectiveness
+
+- **🎯 Today's Focus Steps** - **NEW FEATURE**
+  - **Prominent Display** - Today's scheduled steps shown at the top of check-in page
+  - **Progress Tracking** - Visual progress bar and completion metrics
+  - **Step Completion** - Easy checkbox system to mark steps as complete
+  - **Daily Motivation** - Personalized encouragement based on progress
+  - **Weekly Context** - Always aware of this week's goals and progress
 
 ### 😊 **Mood Tracker & Analytics**
 Comprehensive emotional wellness monitoring with persistent data storage:
@@ -64,14 +94,16 @@ Comprehensive emotional wellness monitoring with persistent data storage:
   - **Mood-reason mapping** for deeper emotional understanding
   - **Pattern discovery** to identify emotional triggers
 
-### 👤 **User Profile Management** - **NEW FEATURE**
+### 👤 **User Profile Management** - **ENHANCED**
 Comprehensive profile system for personalization:
 
 - **🎯 Editable Goals** - Update your main focus anytime
-- **📝 Onboarding Answers** - Review and edit your initial setup
+- **📝 Onboarding Answers** - Review and edit your initial setup with pre-filled forms
 - **💬 Feedback Integration** - Direct access to feedback and bug report forms
 - **📋 Beta Tester Guide** - Comprehensive guide for new users
 - **🔧 Profile Statistics** - Track your wellness journey
+- **🔄 Seamless Data Migration** - Automatic migration from old profile system to new goal-based system
+- **📊 Goal Context Display** - See all your goal details, timeline, and progress metrics
 
 ### 📖 **Mood Journal**
 Comprehensive journaling system for reviewing and analyzing your wellness journey:
@@ -114,16 +146,18 @@ Comprehensive tracking and visualization (formerly "History"):
 - **🔍 Reflection Archive** - Complete reflection history
 
 ### 🎨 **User Experience & Navigation** - **MAJORLY IMPROVED**
-- **🧭 Custom Navigation Menu** - Clean, organized sidebar navigation
+- **🧭 Custom Navigation Menu** - Clean, organized sidebar navigation with all pages
 - **🏠 Streamlined Dashboard** - Focused home page with essential features
 - **📱 Minimalist Design** - Reduced visual clutter and improved aesthetics
 - **🎯 Quick Actions** - Easy access to daily check-in, mood logging, and weekly reflection
-- **🔐 Persistent Authentication** with "Remember me" functionality
+- **🔐 Persistent Authentication** with "Remember me" functionality - login once, move freely
 - **📊 Usage Tracking** with real-time AI usage statistics
-- **💬 Integrated Feedback System** - Easy access to feedback and bug report forms via sidebar navigation
+- **💬 Integrated Feedback System** - Easy access to feedback, feature suggestions, and bug report forms via sidebar navigation
 - **🧠 Intelligent Assistant** with personalized insights and recommendations
 - **🎯 Smart Recommendations** based on your patterns and preferences
 - **🤖 AI-Powered Greetings** with OpenAI integration for personalized responses
+- **😊 Mood Tracker Integration** - Easy access to mood tracking from all pages
+- **🔄 Seamless Page Navigation** - Consistent sidebar across all pages
 
 ### ⚡ **AI Optimization & Performance**
 - **🧠 Smart Caching System** - Avoids redundant API calls for similar inputs
@@ -169,14 +203,34 @@ Comprehensive tracking and visualization (formerly "History"):
 ## 📱 Usage Guide
 
 ### First Time Setup
-1. **Complete Onboarding**: Set up your profile with goals, availability, and preferences
-2. **Choose Your Tone**: Select your preferred assistant communication style
-3. **Set Your Situation**: Define your current life circumstances
+1. **Complete Comprehensive Onboarding**: 
+   - **🎯 Define Your Main Goal*** - What do you want to achieve?
+   - **💭 Understand Your Why** - What drives you to pursue this goal?
+   - **📅 Set Target Date*** - When do you want to achieve it?
+   - **📊 Define Success*** - How will you know you've succeeded?
+   - **📍 Assess Starting Point*** - Where are you starting from?
+   - **⏰ Plan Weekly Time*** - How much time can you commit?
+   - **⚡ Identify Energy Patterns** - When do you have peak energy?
+   - **🚫 Set Free Days** - Which days do you want to keep free?
+   - **🎚️ Choose Intensity** - How ambitious should we start?
+   - **❤️ Map Joy Sources** - What energizes and motivates you?
+   - **🌧️ Identify Energy Drainers** - What tends to bring you down?
+   - **👥 Professional Support** - Are you working with a therapist/coach?
+   - **🚧 Anticipate Obstacles** - What might get in your way?
+   - **🛠️ List Resources** - What tools and resources do you have?
+   - **🔔 Set Reminders** - How often do you want check-in reminders?
+   - **🤖 Generate Plan** - Create your personalized roadmap
+2. **Review & Customize**: Edit your plan and set auto-adaptation preferences
+3. **Start Your Journey**: Begin with daily check-ins and goal-aligned task suggestions
+
+*Fields marked with (*) are mandatory
 
 ### Navigation & Pages
 - **🏠 Home**: Streamlined dashboard with quick actions and AI insights
 - **👤 Profile**: Manage your goals, review onboarding answers, and access feedback
+- **🗺️ Plan**: View your personalized goal plan with milestones, steps, and progress
 - **📝 Daily Check-in**: Time-based check-ins with AI-powered task planning
+- **😊 Mood Tracker**: Enhanced mood logging with analytics and pattern recognition
 - **🌱 Weekly Reflection**: Weekly progress review and planning
 - **📊 Insights**: Comprehensive analytics and mood patterns (formerly History)
 
@@ -185,7 +239,8 @@ Comprehensive tracking and visualization (formerly "History"):
 2. **AI-Powered Analysis**: Each check-in gets personalized insights based on your goals and patterns
 3. **Mood Tracking**: Log your emotions with the beautiful new form above graphs
 4. **Smart Task Planning**: AI generates personalized daily plans based on your energy and goals
-5. **Data Persistence**: All your data is automatically saved and persists across sessions
+5. **Today's Focus Steps**: See your scheduled steps prominently displayed at the top of check-ins
+6. **Data Persistence**: All your data is automatically saved and persists across sessions
 
 ### Weekly Review
 - **Reflection Sessions**: Weekly deep-dive into your progress
@@ -259,6 +314,9 @@ allowed_emails = [
     "another-email@example.com"
 ]
 
+# Admin email (optional - defaults to first email in allowed_emails)
+admin_email = "admin@example.com"
+
 # OpenAI API Key (optional - can also use environment variables)
 openai_api_key = "your-openai-api-key-here"
 ```
@@ -266,7 +324,7 @@ openai_api_key = "your-openai-api-key-here"
 ### **📧 Beta Access Management**
 - **Add users**: Add email addresses to the `allowed_emails` list in `secrets.toml`
 - **Remove users**: Remove email addresses from the `allowed_emails` list
-- **Admin access**: The first email in the list gets admin privileges
+- **Admin access**: Set `admin_email` in secrets, or the first email in `allowed_emails` gets admin privileges
 - **Security**: Secrets are encrypted and not exposed in the app interface
 
 ### **🔑 Environment Variables** (Alternative)
@@ -324,7 +382,7 @@ Focus Companion now includes AI-powered personalization using OpenAI's GPT-3.5-t
 - **Smart fallback** - graceful degradation when limits are reached
 
 ### **📝 Beta Testing Features**
-- **Integrated feedback system** with Tally form integration for feedback and bug reports
+- **Integrated feedback system** with Tally form integration for feedback, feature suggestions, and bug reports
 - **Persistent authentication** - no need to re-enter email
 - **Usage statistics** - real-time tracking of AI usage
 - **Contextual feedback prompts** - collected at optimal moments
@@ -421,9 +479,20 @@ For setup instructions, see [AI_SETUP.md](AI_SETUP.md).
 ### Check-in Data Storage
 All daily check-ins are automatically saved to `data/checkin_data.json` and persist across sessions.
 
-## 🎉 **Major Update - December 2024** 
+## 🎉 **Major Updates - December 2024** 
 
-### **🚀 What's New Today:**
+### **🚀 Latest Enhancements:**
+- **🎯 Ultra-Detailed Goal Planning**: AI generates comprehensive, explicit step descriptions with realistic timelines
+- **📅 Smart Date Generation**: Plans start from today with realistic deadlines based on your weekly commitment
+- **🎨 Beautiful Plan Display**: Enhanced plan page with formatted descriptions, emojis, and clear labels
+- **📊 Recent Adaptations Table**: Prettier table with formatted dates and user-friendly column names
+- **🎯 Today's Focus Steps**: Prominent display of daily tasks at the top of check-in page
+- **🔄 Seamless Data Migration**: Automatic migration from old profile system to new goal-based system
+- **📝 Pre-filled Onboarding**: Edit forms now show your previous answers for easy updates
+- **😊 Mood Tracker Integration**: Added back to sidebar navigation across all pages
+- **🔐 Enhanced Authentication**: Login once, move freely throughout the app with "Remember me" functionality
+
+### **🚀 Previous Major Updates:**
 - **🏷️ App Rebranding**: "Focus Companion" → **"Humsy"** - A fresh, memorable name for your wellness journey
 - **🧭 Custom Navigation**: Beautiful, organized sidebar navigation replacing Streamlit's default
 - **👤 Profile Page**: New dedicated page for managing goals, onboarding answers, and feedback
@@ -469,7 +538,7 @@ All daily check-ins are automatically saved to `data/checkin_data.json` and pers
 - [x] **🔐 Enhanced Authentication** - Persistent sessions with "Remember me"
 - [x] **💬 Feedback Integration** - Tally form integration for beta testing
 
-### Phase 2.5: UI/UX Overhaul ✅ - **COMPLETED TODAY**
+### Phase 2.5: UI/UX Overhaul ✅ - **COMPLETED**
 - [x] **🏷️ App Renaming** - Rebranded from "Focus Companion" to "Humsy"
 - [x] **🧭 Custom Navigation** - Replaced Streamlit's default navigation with clean sidebar
 - [x] **👤 Profile Page** - New dedicated profile management page
@@ -478,6 +547,17 @@ All daily check-ins are automatically saved to `data/checkin_data.json` and pers
 - [x] **🎨 Minimalist Design** - Reduced visual clutter and improved aesthetics
 - [x] **🏠 Streamlined Dashboard** - Cleaner home page with focused quick actions
 - [x] **🎯 Advanced Mood Tracking** - Multiple moods + context-aware reasons system
+
+### Phase 2.6: Goal Planning Enhancement ✅ - **COMPLETED**
+- [x] **🎯 Ultra-Detailed Plan Generation** - AI creates comprehensive, explicit step descriptions
+- [x] **📅 Smart Date Validation** - Plans start from today with realistic timelines
+- [x] **🎨 Beautiful Plan Display** - Enhanced formatting with emojis and clear labels
+- [x] **📊 Recent Adaptations Table** - Prettier table with formatted dates and user-friendly columns
+- [x] **🎯 Today's Focus Steps** - Prominent daily task display at top of check-in page
+- [x] **🔄 Seamless Data Migration** - Automatic migration from old profile to new goal system
+- [x] **📝 Pre-filled Onboarding** - Edit forms show previous answers for easy updates
+- [x] **😊 Mood Tracker Integration** - Added back to sidebar navigation
+- [x] **🔐 Enhanced Authentication** - Login once, move freely with "Remember me"
 
 ### Phase 3: Advanced Features 📋
 - [ ] **🧠 Enhanced AI Task Planning** - Further improvements to personalization and overwhelm prevention
