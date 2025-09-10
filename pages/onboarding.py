@@ -294,57 +294,31 @@ reminder_preference = st.selectbox(
 
 # Generate Plan Button
 st.markdown("---")
-st.write("🔍 **Debug: Checking form completion...**")
-st.write(f"- goal_title: {goal_title}")
-st.write(f"- success_metric: {success_metric}")
-st.write(f"- starting_point: {starting_point}")
-st.write(f"- weekly_time: {weekly_time}")
-st.write(f"- All required fields filled: {bool(goal_title and success_metric and starting_point and weekly_time)}")
-
 if goal_title and success_metric and starting_point and weekly_time:
-    st.write("🔍 **Debug: Button should be visible**")
-    st.write(f"- Goal title: {goal_title}")
-    st.write(f"- Success metric: {success_metric}")
-    st.write(f"- Starting point: {starting_point}")
-    st.write(f"- Weekly time: {weekly_time}")
-    
-    # Try different button approaches
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("🚀 Generate Plan", type="primary", use_container_width=True):
-            st.write("🔍 **Debug: Button was clicked!**")
-            user_email = get_user_email() or "me@example.com"
-            st.write(f"- User email: {user_email}")
-            db = DatabaseManager()
-            goal_id = db.create_goal(user_email, {
-                "title": goal_title,
-                "why_matters": why_matters,
-                "deadline": str(goal_deadline) if goal_deadline else None,
-                "success_metric": success_metric,
-                "starting_point": starting_point,
-                "weekly_time": weekly_time,
-                "energy_time": energy_time,
-                "free_days": ",".join(free_days) if free_days else "",
-                "intensity": intensity,
-                "joy_sources": joy_sources,
-                "energy_drainers": energy_drainers,
-                "therapy_coaching": therapy_coaching,
-                "obstacles": obstacles,
-                "resources": resources,
-                "reminder_preference": reminder_preference,
-                "auto_adapt": True
-            })
-            st.write(f"🔍 **Debug: Goal created with ID: {goal_id}**")
-    
-    with col2:
-        if st.button("🔧 Test Button", use_container_width=True):
-            st.write("🔍 **Debug: Test button was clicked!**")
-            st.success("Test button works!")
+    if st.button("🚀 Generate Plan", type="primary", use_container_width=True):
+        user_email = get_user_email() or "me@example.com"
+        db = DatabaseManager()
+        goal_id = db.create_goal(user_email, {
+            "title": goal_title,
+            "why_matters": why_matters,
+            "deadline": str(goal_deadline) if goal_deadline else None,
+            "success_metric": success_metric,
+            "starting_point": starting_point,
+            "weekly_time": weekly_time,
+            "energy_time": energy_time,
+            "free_days": ",".join(free_days) if free_days else "",
+            "intensity": intensity,
+            "joy_sources": joy_sources,
+            "energy_drainers": energy_drainers,
+            "therapy_coaching": therapy_coaching,
+            "obstacles": obstacles,
+            "resources": resources,
+            "reminder_preference": reminder_preference,
+            "auto_adapt": True
+        })
         
         # Generate plan
-        st.write("🔍 **Debug: Creating AI service...**")
         ai = AIService()
-        st.write("🔍 **Debug: AI service created, starting plan generation...**")
         plan_data = {
             "title": goal_title,
             "why_matters": why_matters,
@@ -387,21 +361,17 @@ if goal_title and success_metric and starting_point and weekly_time:
         
         if edit_plan == "No" and auto_adapt == "No":
             # Update auto_adapt setting
-            import sqlite3
-            conn = sqlite3.connect(db.db_path)
-            cur = conn.cursor()
-            cur.execute("UPDATE goals SET auto_adapt = ? WHERE id = ?", (False, goal_id))
-            conn.commit()
-            conn.close()
+            db.update_goal(goal_id, {
+                "auto_adapt": False
+            })
             
-            st.success("✅ Plan saved! Check the Plan page to view your roadmap.")
-            st.switch_page("pages/plan.py")
-        elif edit_plan == "Yes":
-            st.info("📝 Plan editing feature coming soon! For now, you can view and modify your plan on the Plan page.")
+            st.success("🎉 Your personalized plan has been saved!")
+            st.balloons()
+            
+            # Redirect to plan page
             st.switch_page("pages/plan.py")
         else:
-            st.success("✅ Plan saved! Check the Plan page to view your roadmap.")
-            st.switch_page("pages/plan.py")
+            st.info("Please make your selections above and click 'Save Plan' when ready.")
             
 else:
     st.info("👆 Please fill in all mandatory fields (marked with *) to generate your personalized plan.")
