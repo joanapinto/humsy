@@ -220,6 +220,7 @@ if "Other" in joy_sources:
     st.info("💬 Tell us more about what brings you joy!")
     joy_other = st.text_area(
         "What else brings you joy?",
+        value=profile_data.get("joy_other", "") if profile_data else "",
         placeholder="Write what brings you joy…",
         help="Specify what other things energize you"
     )
@@ -254,6 +255,7 @@ if "Other" in energy_drainers:
     st.info("💬 Tell us more about what drains your energy!")
     energy_drainer_other = st.text_area(
         "What else drains your energy?",
+        value=profile_data.get("energy_drainer_other", "") if profile_data else "",
         placeholder="Write what brings you down or drains your energy…",
         help="Specify what other things drain your energy"
     )
@@ -265,13 +267,15 @@ st.markdown("**12. Are you currently with a therapist, coach or mentor?**")
 therapy_coaching = st.selectbox(
     "Professional support",
     options=["No", "Yes", "I'd like to find one"],
-    help="This helps us tailor our approach"
+    index=safe_index(profile_data.get("therapy_coaching", "No") if profile_data else "No", ["No", "Yes", "I'd like to find one"]),
+    help="This helps us tailor our approach" 
 )
 
 # Question 13: Obstacles (optional)
 st.markdown("**13. What might get in the way?**")
 obstacles = st.text_area(
     "Potential challenges",
+    value=profile_data.get("obstacles", "") if profile_data else "",
     placeholder="e.g., Time constraints, lack of confidence, competing priorities...",
     help="Identifying obstacles helps us plan around them"
 )
@@ -280,6 +284,7 @@ obstacles = st.text_area(
 st.markdown("**14. What resources do you already have?**")
 resources = st.text_area(
     "Available resources",
+    value=profile_data.get("resources", "") if profile_data else "",
     placeholder="e.g., Books, courses, tools, connections, budget...",
     help="This helps us leverage what you already have"
 )
@@ -289,6 +294,7 @@ st.markdown("**15. How do you want reminders?**")
 reminder_preference = st.selectbox(
     "Reminder frequency",
     options=["Daily", "Weekdays", "Custom", "None"],
+    index=safe_index(profile_data.get("reminder_preference", "Daily") if profile_data else "Daily", ["Daily", "Weekdays", "Custom", "None"]),
     help="How often would you like check-in reminders?"
 )
 

@@ -398,14 +398,14 @@ WHAT MOTIVATES & CHALLENGES THEM:
 1. **TIME CONSTRAINT VIOLATION = FAILURE**: If user has {weekly_hours} hours/week, you MUST schedule exactly 2-3 sessions per week, NEVER daily. Total minutes MUST NOT exceed {int(weekly_hours * 60)} minutes per week.
 2. **DAILY SCHEDULING = FORBIDDEN**: For {weekly_hours} hours/week, schedule activities on ONLY 2-3 specific days (e.g., "Tuesday" and "Thursday"), NEVER schedule activities for all 7 days.
 3. **SPECIFIC INSTRUCTIONS REQUIRED**: Every step MUST include exact details: distance, pace, duration, specific exercises. NO vague terms like "long run" or "training".
-            4. **DATE REQUIREMENT**: ALL dates MUST start from today ({datetime.now().strftime('%Y-%m-%d')}) and go forward. NEVER use past dates or dates more than 12 months away.
+4. **DATE REQUIREMENT**: ALL dates MUST start from today ({datetime.now().strftime('%Y-%m-%d')}) and go forward. NEVER use past dates or dates more than 12 months away.
 5. **FREE DAYS RESPECT**: If user specified free days, NEVER schedule activities on those days.
 6. **VALIDATION**: Before returning, verify total weekly minutes ≤ {int(weekly_hours * 60)} and activities scheduled on ≤ 3 days.
 
 DETAILED PLANNING REQUIREMENTS:
 - Create 4-6 meaningful milestones that logically build toward their specific goal
-- Break each milestone into 3-8 highly specific, actionable steps (15-120 minutes each)
-- Schedule activities on 2-4 days per week maximum (based on their time commitment)
+- Break each milestone into 3-8 highly specific, actionable steps taking in consideration that the user has {weekly_hours} hours/week
+- Schedule activities on 2-4 days per week maximum (based on their time commitment, moods, time per week)
 - Include specific, detailed instructions for each step
 - Schedule steps on specific days of the week based on their preferences
 - Incorporate their joy sources naturally into specific activities
@@ -421,25 +421,32 @@ WEEKLY SCHEDULING EXAMPLES:
 - **3-4 hours/week**: 3-4 sessions of 45-60 minutes each
 - **4+ hours/week**: 4-5 sessions of 45-90 minutes each
 
-            ULTRA-SPECIFIC INSTRUCTION EXAMPLES:
-            - Instead of "practice guitar" → "Practice guitar chords C, G, D for 30 minutes. EXACTLY: Set up guitar and tuner. Warm up fingers with 5-minute finger exercises. Practice C chord: place fingers on frets 1-3-5, strum down-up-down-up pattern 20 times. Practice G chord: place fingers on frets 2-3-6, strum same pattern 20 times. Practice D chord: place fingers on frets 1-2-3, strum same pattern 20 times. Transition between chords slowly 10 times each. TOTAL TIME: 30 minutes. EFFORT LEVEL: 5/10 (moderate). SAFETY: Stop if fingers hurt or feel strained. EQUIPMENT: Guitar, tuner, comfortable chair. SUCCESS CRITERIA: You can play each chord clearly and transition between them smoothly."
-            - Instead of "study Spanish" → "Complete Duolingo lesson 15-20, practice pronunciation for 10 minutes, review vocabulary flashcards for 15 minutes. EXACTLY: Open Duolingo app, complete lessons 15-20 (about 20 minutes). Then practice pronunciation: say each new word 5 times aloud, record yourself saying 3 sentences. Finally, review flashcards: go through 20 vocabulary cards, saying each word and its English meaning. TOTAL TIME: 45 minutes. EFFORT LEVEL: 4/10 (easy). BREAKS: Take 2-minute break every 15 minutes."
-            - Instead of "write blog post" → "Write 500-word blog post about your topic for 60 minutes. EXACTLY: Open writing app, create new document. Write outline: introduction (100 words), 3 main points (100 words each), conclusion (100 words). Write introduction paragraph explaining your main point. Write first main point with specific examples. Write second main point with personal experience. Write third main point with actionable tips. Write conclusion summarizing key takeaways. TOTAL TIME: 60 minutes. EFFORT LEVEL: 6/10 (moderate). SAFETY: Stop if you feel stuck or frustrated. EQUIPMENT: Computer, writing app, timer. SUCCESS CRITERIA: You have a complete 500-word blog post with clear structure."
-            - Instead of "listening comprehension practice" → "Practice Spanish listening comprehension for 30 minutes. EXACTLY: Go to YouTube and search 'Spanish conversation for beginners'. Choose a 5-10 minute video with subtitles. Watch once without subtitles, try to understand. Watch again with Spanish subtitles, pause when you hear new words. Write down 10 new words you heard. Watch a third time with English subtitles to check understanding. Practice saying the new words aloud 3 times each. TOTAL TIME: 30 minutes. EFFORT LEVEL: 4/10 (easy). EQUIPMENT: Computer/phone, YouTube access, notebook. SUCCESS CRITERIA: You understand 60% of the video and learned 10 new words."
-            - Instead of "cardio workout" → "Complete 30-minute cardio workout. EXACTLY: Put on workout clothes and running shoes. Go to a safe outdoor area or use a treadmill. Start with 5-minute warm-up walk. Then alternate: 2 minutes jogging at comfortable pace, 1 minute walking, repeat 8 times. Finish with 5-minute cool-down walk. Drink water every 10 minutes. TOTAL TIME: 30 minutes. EFFORT LEVEL: 6/10 (moderate). SAFETY: Stop if you feel dizzy or chest pain. EQUIPMENT: Running shoes, water bottle, comfortable clothes. SUCCESS CRITERIA: You completed the full 30 minutes without stopping."
+            PRACTICAL INSTRUCTION EXAMPLES:
+            
+            **Language Learning (Polish example):**
+            Instead of "Daily Vocabulary Practice" → "Learn 10 new Polish words using spaced repetition. Open Anki or Quizlet, create flashcards for: dzień (day), noc (night), dom (house), szkoła (school), praca (work), rodzina (family), przyjaciel (friend), jedzenie (food), woda (water), miłość (love). For each word: 1) Read the Polish word aloud 3 times, 2) Look at the English meaning, 3) Cover the English and try to remember, 4) Write the word 3 times, 5) Use it in a simple sentence. Review all 10 words at the end. You'll know 10 new Polish words and can use them in basic sentences."
+            
+            **Fitness (Running example):**
+            Instead of "cardio workout" → "Run 2 miles at conversational pace. Start with 5-minute walking warm-up. Run at a pace where you can talk in full sentences (not gasping). If you need to walk, that's fine - aim for 20 minutes total movement. Cool down with 5 minutes walking. Focus on steady breathing: inhale for 3 steps, exhale for 3 steps. You'll build endurance and feel energized."
+            
+            **Writing (Blog example):**
+            Instead of "write blog post" → "Write a 300-word article about your topic. Start with: 1) Write 3 main points you want to cover, 2) Write an opening paragraph that hooks the reader, 3) Write one paragraph for each main point with a personal example, 4) Write a conclusion that summarizes your key message. Use simple, clear language. You'll have a complete article that shares your knowledge."
+            
+            **Music (Guitar example):**
+            Instead of "practice guitar" → "Learn to play 'Happy Birthday' on guitar. Find the chords online (G, D, D7, G). Practice each chord: place your fingers correctly, strum down once, hold for 2 seconds. Then practice the chord progression: G-G-D-D-G-G-D7-D7-G. Play slowly and focus on clean chord changes. You'll be able to play a real song for someone's birthday."
+            
+            **Cooking (Healthy meal example):**
+            Instead of "cook healthy meal" → "Make a simple stir-fry with vegetables and protein. Heat 1 tablespoon oil in a pan. Add chopped onion and garlic, cook 2 minutes. Add your protein (chicken, tofu, or beans), cook 5 minutes. Add mixed vegetables (bell peppers, broccoli, carrots), cook 5 more minutes. Season with soy sauce, ginger, and a pinch of salt. Serve over rice or noodles. You'll have a nutritious, homemade meal in 20 minutes."
 
-MANDATORY FORMAT FOR EVERY STEP:
-Each step MUST include ALL of these elements:
-1. **EXACTLY**: Step-by-step instructions with specific numbers, times, distances
-2. **TOTAL TIME**: Exact duration in minutes
-3. **EFFORT LEVEL**: Scale 1-10 with description
-4. **SAFETY**: Specific safety warnings and when to stop
-5. **EQUIPMENT**: What you need (shoes, water, app, etc.)
-6. **BREAKS**: When and how long to rest
-7. **SUCCESS CRITERIA**: How you know you did it right
-8. **WHAT TO EXPECT**: Physical sensations, difficulty level
-9. **HYDRATION/NUTRITION**: When to drink water, eat
-10. **PROGRESSION**: How this builds toward your goal
+REQUIRED FORMAT FOR EVERY STEP:
+Each step description MUST be:
+1. **SPECIFIC**: Exact steps with numbers, times, and clear actions
+2. **PRACTICAL**: Real tools, apps, or methods the user can actually use
+3. **ACHIEVABLE**: Something they can complete in the time given
+4. **MEANINGFUL**: Actually helps them progress toward their goal
+5. **CLEAR**: Easy to read and follow without confusion
+
+Focus on WHAT to do, HOW to do it, and WHY it matters. Avoid generic advice like "set up workspace" or "take breaks" unless it's truly necessary for that specific activity.
 
 Return STRICT JSON only with this schema:
 {{

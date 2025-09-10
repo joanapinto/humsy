@@ -227,47 +227,17 @@ if milestones:
                     col1, col2, col3 = st.columns([3, 1, 1])
                     with col1:
                         st.write(f"• **{step['title']}**")
-                        # Show the ultra-explicit description in a clean format
+                        # Show the description in a clean, readable format
                         description = step.get('description', '')
                         if description:
-                            # Remove "EXACTLY:" prefix and format nicely
+                            # Clean up the description - remove any prefixes and make it readable
                             clean_description = description.replace('EXACTLY: ', '').replace(' - Break this down into specific, actionable steps.', '')
                             
-                            # Split into sections for better readability
-                            sections = clean_description.split('. ')
-                            if len(sections) > 1:
-                                # First section is the main instruction
-                                main_instruction = sections[0]
-                                st.write(f"📋 **What to do:** {main_instruction}")
-                                
-                                # Parse other sections
-                                for section in sections[1:]:
-                                    if 'TOTAL TIME:' in section:
-                                        time_info = section.replace('TOTAL TIME:', '⏱️ **Duration:**')
-                                        st.write(time_info)
-                                    elif 'EFFORT LEVEL:' in section:
-                                        effort_info = section.replace('EFFORT LEVEL:', '💪 **Effort:**')
-                                        st.write(effort_info)
-                                    elif 'SAFETY:' in section:
-                                        safety_info = section.replace('SAFETY:', '⚠️ **Safety:**')
-                                        st.write(safety_info)
-                                    elif 'EQUIPMENT:' in section:
-                                        equipment_info = section.replace('EQUIPMENT:', '🛠️ **Equipment:**')
-                                        st.write(equipment_info)
-                                    elif 'HYDRATION:' in section:
-                                        hydration_info = section.replace('HYDRATION:', '💧 **Hydration:**')
-                                        st.write(hydration_info)
-                                    elif 'SUCCESS CRITERIA:' in section:
-                                        success_info = section.replace('SUCCESS CRITERIA:', '✅ **Success looks like:**')
-                                        st.write(success_info)
-                                    elif 'WHAT TO EXPECT:' in section:
-                                        expect_info = section.replace('WHAT TO EXPECT:', '🎯 **What to expect:**')
-                                        st.write(expect_info)
-                                    elif 'PROGRESSION:' in section:
-                                        progress_info = section.replace('PROGRESSION:', '📈 **How this helps:**')
-                                        st.write(progress_info)
-                            else:
-                                st.write(clean_description)
+                            # Display as a simple, clean instruction
+                            st.write(f"📋 **How to do this:**")
+                            st.write(clean_description)
+                        else:
+                            st.write("📋 **Instructions:** Detailed instructions will be provided when you start this activity.")
                     with col2:
                         st.write(f"{step['estimate_minutes']} min")
                     with col3:
