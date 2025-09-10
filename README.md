@@ -251,26 +251,30 @@ Comprehensive tracking and visualization (formerly "History"):
 ## 🏗️ Architecture
 
 ```
-focus-companion/
+humsy/
 ├── app.py                 # Main Streamlit application
 ├── auth.py                # Beta access control & authentication
+├── shared_sidebar.py      # Shared navigation sidebar for all pages
 ├── .streamlit/            # Streamlit configuration
-│   └── secrets.toml       # Secure configuration (allowed emails, API keys)
+│   └── secrets.toml       # Secure configuration (allowed emails, API keys, Supabase)
 ├── pages/                 # Application pages
-│   ├── profile.py         # NEW: User profile management & editing
-│   ├── onboarding.py      # User profile setup with feedback
+│   ├── profile.py         # User profile management & editing
+│   ├── onboarding.py      # Comprehensive goal setup with AI plan generation
+│   ├── plan.py            # Goal plan visualization and management
 │   ├── daily_checkin.py   # Time-based check-ins with AI task planning
 │   ├── mood_tracker.py    # Enhanced emotion tracking & analytics
 │   ├── mood_journal.py    # Comprehensive journaling system
 │   ├── reflection.py      # Weekly reflections
-│   ├── history.py         # RENAMED: Insights & analytics
+│   ├── history.py         # Insights & analytics (formerly History)
 │   └── insights.py        # Admin database insights
 ├── data/                  # Data storage
-│   ├── database.py        # SQLite database manager
+│   ├── database.py        # SQLite database manager (fallback)
+│   ├── supabase_manager.py # Supabase REST API integration (primary)
+│   ├── postgres_manager.py # PostgreSQL direct connection (unused)
 │   ├── storage.py         # Hybrid JSON/SQLite storage
 │   ├── migrate_to_sqlite.py # Data migration utility
 │   └── ai_cache.json       # AI response cache (auto-generated)
-│   ├── focus_companion.db # SQLite database (auto-generated)
+│   ├── focus_companion.db # SQLite database (auto-generated, fallback)
 │   ├── user_profile.json  # User profile data (backup)
 │   ├── mood_data.json     # Persistent mood tracking data (backup)
 │   ├── checkin_data.json  # Persistent daily check-in data (backup)
@@ -283,9 +287,10 @@ focus-companion/
 │   ├── ai_cache.py        # Smart caching system
 │   ├── fallback.py        # Fallback intelligence system
 │   └── usage_limiter.py   # Usage tracking & cost control
-├── memory/                # Memory management
 ├── tests/                 # Test suite
 ├── requirements.txt       # Python dependencies
+├── supabase_setup.sql     # Supabase database schema setup
+├── supabase_schema_update.sql # Schema updates for missing columns
 ├── AI_SETUP.md           # AI features setup guide
 └── README.md             # This file
 ```
@@ -296,11 +301,13 @@ focus-companion/
 - **Data Visualization**: Plotly
 - **Data Processing**: Pandas
 - **AI Integration**: OpenAI (GPT-3.5-turbo)
-- **Data Storage**: SQLite database with JSON backup for compatibility
+- **Primary Database**: Supabase (PostgreSQL) with REST API integration
+- **Fallback Database**: SQLite with JSON backup for compatibility
 - **Data Persistence**: Automatic saving and loading of all user data
 - **Authentication**: Custom beta access control with persistent sessions
-- **Usage Tracking**: SQLite-based usage monitoring with detailed analytics
+- **Usage Tracking**: Database-based usage monitoring with detailed analytics
 - **Feedback Integration**: Tally form integration for beta testing
+- **Cloud Deployment**: Streamlit Cloud with persistent external database
 
 ## ⚙️ Configuration
 
@@ -322,6 +329,13 @@ admin_email = "admin@example.com"
 # OpenAI API Key (required for AI features)
 openai_api_key = "your-openai-api-key-here"
 
+# Supabase Configuration (for persistent cloud storage)
+supabase_url = "https://your-project.supabase.co"
+supabase_key = "your-supabase-anon-key"
+
+# Database URL (alternative PostgreSQL connection)
+database_url = "postgresql://user:password@host:port/database"
+
 # Debug mode (optional - shows detailed error messages)
 show_debug_info = true
 ```
@@ -333,9 +347,26 @@ show_debug_info = true
    allowed_emails = ["your-email@example.com", "another@example.com"]
    admin_email = "admin@example.com"
    openai_api_key = "sk-your-openai-api-key-here"
+   supabase_url = "https://your-project.supabase.co"
+   supabase_key = "your-supabase-anon-key"
+   database_url = "postgresql://user:password@host:port/database"
    show_debug_info = true
    ```
 3. Deploy your app
+
+### **🗄️ Database Setup**
+
+**For Supabase (Recommended):**
+1. Create a free Supabase account at [supabase.com](https://supabase.com)
+2. Create a new project
+3. Run the SQL script from `supabase_setup.sql` in your Supabase SQL Editor
+4. Optionally run `supabase_schema_update.sql` for additional columns
+5. Get your project URL and anon key from Settings > API
+6. Add them to your `secrets.toml` file
+
+**For Local Development:**
+- SQLite database will be created automatically as a fallback
+- No additional setup required
 
 ### **📧 Beta Access Management**
 - **Add users**: Add email addresses to the `allowed_emails` list in `secrets.toml`
@@ -403,14 +434,17 @@ Focus Companion now includes AI-powered personalization using OpenAI's GPT-3.5-t
 - **Usage statistics** - real-time tracking of AI usage
 - **Contextual feedback prompts** - collected at optimal moments
 
-### **🗄️ SQLite Database Features**
+### **🗄️ Database Features**
+- **Supabase Integration** - Primary cloud database with REST API
+- **Automatic Fallback** - SQLite fallback when Supabase is unavailable
 - **Enhanced performance** - Faster queries and better scalability
 - **Detailed analytics** - Track usage patterns, costs, and feature adoption
 - **Data integrity** - ACID compliance prevents data corruption
-- **Easy migration** - Automatic migration from JSON to SQLite
+- **Easy migration** - Automatic migration from JSON to database
 - **Backup compatibility** - JSON files maintained as backup
 - **Advanced queries** - Complex analytics and reporting capabilities
 - **Admin-only insights** - Database insights restricted to administrator during beta testing
+- **Cloud Persistence** - Data survives Streamlit Cloud deployments
 
 ### **⚡ AI Optimization Features**
 - **Smart Caching System** - Avoids redundant API calls for similar inputs
@@ -495,9 +529,19 @@ For setup instructions, see [AI_SETUP.md](AI_SETUP.md).
 ### Check-in Data Storage
 All daily check-ins are automatically saved to `data/checkin_data.json` and persist across sessions.
 
-## 🎉 **Major Updates - December 2024** 
+## 🎉 **Major Updates - January 2025** 
 
 ### **🚀 Latest Enhancements:**
+- **🗄️ Supabase Integration**: Primary cloud database with persistent storage on Streamlit Cloud
+- **🔄 Automatic Database Fallback**: Seamless fallback to SQLite when Supabase is unavailable
+- **🎯 Enhanced Goal Planning**: AI generates comprehensive plans with proper milestone/step relationships
+- **📅 Smart Weekly Scheduling**: Improved weekly activities display with better step assignment
+- **🎨 Consistent Navigation**: Shared sidebar across all pages including mood tracker
+- **🔧 Schema Compatibility**: Handles missing database columns gracefully
+- **📊 Production-Ready**: Clean interface with debug information removed
+- **☁️ Cloud Persistence**: Data survives Streamlit Cloud deployments and restarts
+
+### **🚀 Previous Major Updates (December 2024):**
 - **🎯 Ultra-Detailed Goal Planning**: AI generates comprehensive, explicit step descriptions with realistic timelines
 - **📅 Smart Date Generation**: Plans start from today with realistic deadlines based on your weekly commitment
 - **🎨 Beautiful Plan Display**: Enhanced plan page with formatted descriptions, emojis, and clear labels
@@ -574,6 +618,16 @@ All daily check-ins are automatically saved to `data/checkin_data.json` and pers
 - [x] **📝 Pre-filled Onboarding** - Edit forms show previous answers for easy updates
 - [x] **😊 Mood Tracker Integration** - Added back to sidebar navigation
 - [x] **🔐 Enhanced Authentication** - Login once, move freely with "Remember me"
+
+### Phase 2.7: Cloud Database Integration ✅ - **COMPLETED**
+- [x] **🗄️ Supabase Integration** - Primary cloud database with REST API
+- [x] **🔄 Automatic Fallback System** - SQLite fallback when cloud database unavailable
+- [x] **☁️ Streamlit Cloud Compatibility** - Persistent storage on cloud deployments
+- [x] **🔧 Schema Compatibility** - Handles missing database columns gracefully
+- [x] **📊 Production-Ready Interface** - Clean UI with debug information removed
+- [x] **🎯 Enhanced Plan Management** - Proper milestone/step relationships in cloud database
+- [x] **📅 Improved Weekly Scheduling** - Better step assignment and display logic
+- [x] **🧭 Consistent Navigation** - Shared sidebar across all pages
 
 ### Phase 3: Advanced Features 📋
 - [ ] **🧠 Enhanced AI Task Planning** - Further improvements to personalization and overwhelm prevention
