@@ -49,7 +49,14 @@ st.title("🤔 Weekly Reflection")
 user_profile = load_user_profile()
 
 # Also check if user has an active goal (new onboarding system)
-db = DatabaseManager()
+# Initialize database with Supabase-first fallback
+try:
+    from data.supabase_manager import SupabaseManager
+    db = SupabaseManager()
+except Exception:
+    from data.database import DatabaseManager
+    db = DatabaseManager()
+
 user_email = get_user_email() or "me@example.com"
 active_goal = db.get_active_goal(user_email)
 
@@ -72,4 +79,50 @@ else:
         submitted = st.form_submit_button("💾 Save Reflection")
         
         if submitted:
-            st.success("✅ Reflection saved successfully!")
+            # Save reflection to database
+            try:
+                from datetime import datetime, timedelta
+                
+                # Get current week dates
+                today = datetime.now()
+                monday = today - timedelta(days=today.weekday())
+                sunday = monday + timedelta(days=6)
+                
+                # Create reflection summary
+                reflection_summary = f"""Weekly Reflection - {monday.strftime('%B %d')} to {sunday.strftime('%B %d, %Y')}
+
+🏆 Wins: {wins}
+
+🚧 Challenges: {challenges}
+
+📚 Lessons: {lessons}
+
+🎯 Next Week Focus: {next_week}"""
+                
+                # Save to database
+                db.save_weekly_reflection(
+                    user_email=user_email,
+                    week_start_date=monday.strftime('%Y-%m-%d'),
+                    week_end_date=sunday.strftime('%Y-%m-%d'),
+                    summary_text=reflection_summary,
+                    insights={
+                        "wins": wins,
+                        "challenges": challenges,
+                        "lessons": lessons,
+                        "next_week_focus": next_week
+                    },
+                    patterns={},
+                    recommendations={},
+                    data_summary={
+                        "reflection_type": "manual",
+                        "created_at": datetime.now().isoformat()
+                    }
+                )
+                
+                st.success("✅ Reflection saved successfully to your personal archive!")
+                
+            except Exception as e:
+                st.error(f"❌ Error saving reflection: {str(e)}")
+                st.write(f"🔍 Error type: {type(e).__name__}")
+                import traceback
+                st.write(f"🔍 Full traceback: {traceback.format_exc()}")
