@@ -316,16 +316,20 @@ class SupabaseManager:
         # Return a dummy path since Supabase doesn't use local files
         return "supabase://remote"
     
-    def save_mood_log(self, user_email: str, mood: str, intensity: int, notes: str = None):
-        """Save a mood log entry"""
+    def save_mood_log(self, user_email: str, moods: list, reasons: dict = None, notes: str = None):
+        """Save a mood log entry with multiple moods and reasons"""
         try:
             if not self.supabase_url or not self.supabase_key:
                 raise Exception("Supabase URL or key not configured")
             
+            # Ensure moods is a list
+            if isinstance(moods, str):
+                moods = [moods]
+            
             data = {
                 "user_email": user_email,
-                "mood": mood,
-                "intensity": intensity,
+                "moods": moods,
+                "reasons": reasons or {},
                 "notes": notes
             }
             

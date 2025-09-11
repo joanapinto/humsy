@@ -57,20 +57,20 @@ def save_mood_data(mood_entry, user_email=None):
     if user_email:
         # Handle both old format (single mood) and new format (multiple moods)
         if 'moods' in mood_entry and mood_entry['moods']:
-            # New format: save each mood separately
-            for mood in mood_entry['moods']:
-                db.save_mood_log(
-                    user_email=user_email,
-                    mood=mood,
-                    intensity=mood_entry.get('intensity', 5),
-                    notes=mood_entry.get('note', mood_entry.get('notes', ''))
-                )
-        else:
-            # Old format: single mood
+            # New format: save as single entry with multiple moods
             db.save_mood_log(
                 user_email=user_email,
-                mood=mood_entry.get('mood', 'unknown'),
-                intensity=mood_entry.get('intensity', 5),
+                moods=mood_entry['moods'],
+                reasons=mood_entry.get('reasons', {}),
+                notes=mood_entry.get('note', mood_entry.get('notes', ''))
+            )
+        else:
+            # Old format: single mood - convert to new format
+            single_mood = mood_entry.get('mood', 'unknown')
+            db.save_mood_log(
+                user_email=user_email,
+                moods=[single_mood],  # Convert to list
+                reasons={},  # No reasons in old format
                 notes=mood_entry.get('note', mood_entry.get('notes', ''))
             )
     
@@ -90,12 +90,23 @@ def load_mood_data(user_email=None):
             # Convert database format to JSON format for compatibility
             converted_logs = []
             for log in mood_logs:
-                converted_logs.append({
-                    'mood': log['mood'],
-                    'intensity': log['intensity'],
-                    'notes': log['notes'],
-                    'timestamp': log['created_at']
-                })
+                # Handle new schema with moods array and reasons object
+                if 'moods' in log:
+                    # New format: multiple moods with reasons
+                    converted_logs.append({
+                        'moods': log['moods'],
+                        'reasons': log.get('reasons', {}),
+                        'notes': log.get('notes', ''),
+                        'timestamp': log['created_at']
+                    })
+                else:
+                    # Old format: single mood (backward compatibility)
+                    converted_logs.append({
+                        'mood': log.get('mood', 'unknown'),
+                        'intensity': log.get('intensity', 5),
+                        'notes': log.get('notes', ''),
+                        'timestamp': log['created_at']
+                    })
             return converted_logs
     
     # Fallback to JSON

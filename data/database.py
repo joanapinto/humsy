@@ -44,8 +44,8 @@ class DatabaseManager:
                 CREATE TABLE IF NOT EXISTS mood_logs (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     user_email TEXT NOT NULL,
-                    mood TEXT NOT NULL,
-                    intensity INTEGER NOT NULL,
+                    moods TEXT NOT NULL,  -- JSON array of moods
+                    reasons TEXT,         -- JSON object of reasons
                     notes TEXT,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
@@ -314,14 +314,15 @@ class DatabaseManager:
                 "total_cost": total_cost
             }
     
-    def save_mood_log(self, user_email: str, mood: str, intensity: int, notes: str = None):
-        """Save a mood log entry"""
+    def save_mood_log(self, user_email: str, moods: list, reasons: dict = None, notes: str = None):
+        """Save a mood log entry with multiple moods and reasons"""
+        import json
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             cursor.execute("""
-                INSERT INTO mood_logs (user_email, mood, intensity, notes)
+                INSERT INTO mood_logs (user_email, moods, reasons, notes)
                 VALUES (?, ?, ?, ?)
-            """, (user_email, mood, intensity, notes))
+            """, (user_email, json.dumps(moods), json.dumps(reasons or {}), notes))
             conn.commit()
     
     def get_mood_logs(self, user_email: str, days: int = 30) -> List[Dict[str, Any]]:
@@ -329,7 +330,7 @@ class DatabaseManager:
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT mood, intensity, notes, created_at
+                SELECT moods, reasons, notes, created_at
                 FROM mood_logs 
                 WHERE user_email = ? AND created_at >= date('now', '-{} days')
                 ORDER BY created_at DESC
@@ -337,9 +338,10 @@ class DatabaseManager:
             
             logs = []
             for row in cursor.fetchall():
+                import json
                 logs.append({
-                    "mood": row[0],
-                    "intensity": row[1],
+                    "moods": json.loads(row[0]) if row[0] else [],
+                    "reasons": json.loads(row[1]) if row[1] else {},
                     "notes": row[2],
                     "created_at": row[3]
                 })
