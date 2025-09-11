@@ -444,3 +444,95 @@ class SupabaseManager:
         except Exception as e:
             st.error(f"Failed to get check-ins: {str(e)}")
             return []
+    
+    def mark_step_status(self, step_id: int, status: str):
+        """Mark a step as completed or update its status"""
+        try:
+            if not self.supabase_url or not self.supabase_key:
+                raise Exception("Supabase URL or key not configured")
+            
+            data = {
+                "status": status,
+                "last_scheduled": datetime.now().isoformat()
+            }
+            
+            response = requests.patch(
+                f"{self.supabase_url}/rest/v1/steps",
+                headers=self.headers,
+                params={"id": f"eq.{step_id}"},
+                json=data
+            )
+            
+            if response.status_code not in [200, 204]:
+                raise Exception(f"Failed to update step status: {response.text}")
+                
+        except Exception as e:
+            st.error(f"Failed to mark step status: {str(e)}")
+            raise
+    
+    def get_today_candidates(self, user_email: str, date_str: str) -> list[dict]:
+        """Get today's candidate steps for the user"""
+        try:
+            if not self.supabase_url or not self.supabase_key:
+                raise Exception("Supabase URL or key not configured")
+            
+            # Get the active goal first
+            goal = self.get_active_goal(user_email)
+            if not goal:
+                return []
+            
+            # Get weekday from date string
+            wd = datetime.fromisoformat(date_str).strftime("%a")  # e.g., Mon
+            
+            # Get pending steps for this goal
+            response = requests.get(
+                f"{self.supabase_url}/rest/v1/steps",
+                headers=self.headers,
+                params={
+                    "goal_id": f"eq.{goal['id']}",
+                    "status": "in.(pending,in_progress)",
+                    "order": "due_date.asc,estimate_minutes.asc"
+                }
+            )
+            
+            if response.status_code == 200:
+                steps = response.json()
+                # Filter steps by suggested_day
+                def day_ok(s):
+                    sd = (s.get("suggested_day") or "Any")
+                    return sd == "Any" or wd in sd.split(",")
+                return [s for s in steps if day_ok(s)]
+            else:
+                raise Exception(f"Failed to get today's candidates: {response.text}")
+                
+        except Exception as e:
+            st.error(f"Failed to get today's candidates: {str(e)}")
+            return []
+    
+    def record_adaptation(self, goal_id: int, checkin_ts: str, alignment_score: int, reason: str, change_summary: str, diff_json: str):
+        """Record a plan adaptation"""
+        try:
+            if not self.supabase_url or not self.supabase_key:
+                raise Exception("Supabase URL or key not configured")
+            
+            data = {
+                "goal_id": goal_id,
+                "checkin_timestamp": checkin_ts,
+                "alignment_score": alignment_score,
+                "reason": reason,
+                "change_summary": change_summary,
+                "diff_json": diff_json
+            }
+            
+            response = requests.post(
+                f"{self.supabase_url}/rest/v1/plan_adaptations",
+                headers=self.headers,
+                json=data
+            )
+            
+            if response.status_code not in [200, 201]:
+                raise Exception(f"Failed to record adaptation: {response.text}")
+                
+        except Exception as e:
+            st.error(f"Failed to record adaptation: {str(e)}")
+            raise
