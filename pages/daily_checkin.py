@@ -195,10 +195,19 @@ if not user_profile and not active_goal:
     if st.button("🚀 Go to Onboarding", use_container_width=True):
         st.switch_page("pages/onboarding.py")
 else:
-    # Load user data for context
+    # Load user data for context (cached to avoid repeated loading)
     user_email = get_user_email() or "me@example.com"
-    mood_data = load_mood_data(user_email)
-    checkin_data = load_checkin_data(user_email)
+    if 'mood_data' not in st.session_state:
+        mood_data = load_mood_data(user_email)
+        st.session_state.mood_data = mood_data
+    else:
+        mood_data = st.session_state.mood_data
+    
+    if 'checkin_data' not in st.session_state:
+        checkin_data = load_checkin_data(user_email)
+        st.session_state.checkin_data = checkin_data
+    else:
+        checkin_data = st.session_state.checkin_data
     
     # Initialize assistant for personalized insights (cached to avoid repeated AI calls)
     if 'fallback_assistant' not in st.session_state:
@@ -206,6 +215,18 @@ else:
         st.session_state.fallback_assistant = assistant
     else:
         assistant = st.session_state.fallback_assistant
+    
+    # Function to refresh cached data when new data is saved
+    def refresh_cached_data():
+        """Refresh cached data after saving new check-ins or moods"""
+        st.session_state.mood_data = load_mood_data(user_email)
+        st.session_state.checkin_data = load_checkin_data(user_email)
+        # Recreate assistant with fresh data
+        assistant = FallbackAssistant(user_profile, st.session_state.mood_data, st.session_state.checkin_data)
+        st.session_state.fallback_assistant = assistant
+        # Clear cached encouragement to get fresh one
+        if 'daily_encouragement' in st.session_state:
+            del st.session_state.daily_encouragement
     
     # Initialize AI service for task planning (cached to avoid repeated initialization)
     if 'ai_service' not in st.session_state:
@@ -578,6 +599,8 @@ else:
                 # Save the check-in data to persistent storage
                 user_email = get_user_email() or "me@example.com"
                 save_checkin_data(checkin_data, user_email)
+                refresh_cached_data()  # Refresh cached data after saving
+                refresh_cached_data()  # Refresh cached data after saving
                 st.success("✅ Morning check-in saved successfully!")
                 
                 # After saving today's check-in, compute plan alignment:
@@ -729,6 +752,7 @@ else:
                     checkin_data['task_completion'] = task_completion
                     user_email = get_user_email() or "me@example.com"
                 save_checkin_data(checkin_data, user_email)
+                refresh_cached_data()  # Refresh cached data after saving
         
         # Afternoon flow (12 PM - 6 PM)
         elif 12 <= current_hour < 18:
@@ -841,6 +865,7 @@ else:
                 # Save the check-in data to persistent storage
                 user_email = get_user_email() or "me@example.com"
                 save_checkin_data(checkin_data, user_email)
+                refresh_cached_data()  # Refresh cached data after saving
                 st.success("✅ Afternoon check-in saved successfully!")
                 
                 # After saving today's check-in, compute plan alignment:
@@ -981,6 +1006,7 @@ else:
                     checkin_data['task_completion'] = task_completion
                     user_email = get_user_email() or "me@example.com"
                 save_checkin_data(checkin_data, user_email)
+                refresh_cached_data()  # Refresh cached data after saving
         
         # Evening flow (6 PM - 5 AM)
         else:
@@ -1094,6 +1120,7 @@ else:
                 # Save the check-in data to persistent storage
                 user_email = get_user_email() or "me@example.com"
                 save_checkin_data(checkin_data, user_email)
+                refresh_cached_data()  # Refresh cached data after saving
                 st.success("✅ Evening check-in saved successfully!")
                 
                 # After saving today's check-in, compute plan alignment:
@@ -1234,6 +1261,7 @@ else:
                     checkin_data['task_completion'] = task_completion
                     user_email = get_user_email() or "me@example.com"
                 save_checkin_data(checkin_data, user_email)
+                refresh_cached_data()  # Refresh cached data after saving
 
 # Handle pending skips (outside of forms)
 if 'pending_skips' in st.session_state:
