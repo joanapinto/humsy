@@ -196,24 +196,36 @@ if not user_profile and not active_goal:
         st.switch_page("pages/onboarding.py")
 else:
     # Load user data for context
-    mood_data = load_mood_data()
-    checkin_data = load_checkin_data()
+    user_email = get_user_email() or "me@example.com"
+    mood_data = load_mood_data(user_email)
+    checkin_data = load_checkin_data(user_email)
     
-    # Initialize assistant for personalized insights
+    # Initialize assistant for personalized insights (cached to avoid repeated AI calls)
+    if 'fallback_assistant' not in st.session_state:
     assistant = FallbackAssistant(user_profile, mood_data, checkin_data)
+        st.session_state.fallback_assistant = assistant
+    else:
+        assistant = st.session_state.fallback_assistant
     
-    # Initialize AI service for task planning
+    # Initialize AI service for task planning (cached to avoid repeated initialization)
+    if 'ai_service' not in st.session_state:
     try:
         from assistant.ai_service import AIService
         ai_service = AIService()
         from auth import get_user_email
         user_email = get_user_email()
-        ai_service_available = True
+            st.session_state.ai_service = ai_service
+            st.session_state.ai_service_available = True
+            st.session_state.ai_user_email = user_email
     except Exception as e:
         st.warning(f"🤖 AI service initialization failed: {str(e)}")
-        ai_service_available = False
-        ai_service = None
-        user_email = None
+            st.session_state.ai_service = None
+            st.session_state.ai_service_available = False
+            st.session_state.ai_user_email = None
+    
+    ai_service = st.session_state.get('ai_service')
+    ai_service_available = st.session_state.get('ai_service_available', False)
+    user_email = st.session_state.get('ai_user_email')
     
     # Determine time of day with more granular awareness
     current_time = datetime.now()
@@ -449,7 +461,7 @@ else:
     today = datetime.now().strftime('%Y-%m-%d')
     if ('daily_encouragement' not in st.session_state or 
         st.session_state.get('encouragement_date') != today):
-        encouragement = assistant.get_daily_encouragement()
+    encouragement = assistant.get_daily_encouragement()
         st.session_state.daily_encouragement = encouragement
         st.session_state.encouragement_date = today
     else:
@@ -569,7 +581,7 @@ else:
                 goal = db.get_active_goal(user_email)
                 if goal:
                     st.subheader("📌 Today's Plan (Goal Alignment)")
-                    ai = AIService()
+                    ai = ai_service
                     today_str = datetime.now().date().isoformat()
                     candidates = db.get_today_candidates(user_email, today_str)
                     # build context (extend with your mood history if available)
@@ -832,7 +844,7 @@ else:
                 goal = db.get_active_goal(user_email)
                 if goal:
                     st.subheader("📌 Today's Plan (Goal Alignment)")
-                    ai = AIService()
+                    ai = ai_service
                     today_str = datetime.now().date().isoformat()
                     candidates = db.get_today_candidates(user_email, today_str)
                     # build context (extend with your mood history if available)
@@ -1085,7 +1097,7 @@ else:
                 goal = db.get_active_goal(user_email)
                 if goal:
                     st.subheader("📌 Today's Plan (Goal Alignment)")
-                    ai = AIService()
+                    ai = ai_service
                     today_str = datetime.now().date().isoformat()
                     candidates = db.get_today_candidates(user_email, today_str)
                     # build context (extend with your mood history if available)
