@@ -133,12 +133,23 @@ class FocusAssistant:
             # Handle new format (multiple moods)
             if 'moods' in entry and entry['moods']:
                 for mood in entry['moods']:
+                    # Safely get reasons for this mood
+                    reasons = []
+                    try:
+                        entry_reasons = entry.get('reasons', {})
+                        if isinstance(entry_reasons, dict):
+                            reasons = entry_reasons.get(mood, [])
+                        elif isinstance(entry_reasons, list):
+                            reasons = entry_reasons
+                    except (AttributeError, TypeError):
+                        reasons = []
+                    
                     processed_data.append({
                         'mood': mood,
                         'timestamp': entry['timestamp'],
                         'date': entry.get('date', entry['timestamp']),
                         'notes': entry.get('notes', ''),
-                        'reasons': entry.get('reasons', {}).get(mood, [])
+                        'reasons': reasons
                     })
             # Handle old format (single mood with intensity)
             elif 'mood' in entry:
