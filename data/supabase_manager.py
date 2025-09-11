@@ -392,7 +392,17 @@ class SupabaseManager:
                 "skipped_steps": checkin_data.get('skipped_steps'),
                 "notes": checkin_data.get('notes'),
                 "mood": checkin_data.get('mood'),
-                "energy_level": energy_level
+                "energy_level": energy_level,
+                "time_period": checkin_data.get('time_period'),
+                "sleep_quality": checkin_data.get('sleep_quality'),
+                "focus_today": checkin_data.get('focus_today'),
+                "current_feeling": checkin_data.get('current_feeling'),
+                "day_progress": checkin_data.get('day_progress'),
+                "accomplishments": checkin_data.get('accomplishments'),
+                "challenges": checkin_data.get('challenges'),
+                "task_plan": checkin_data.get('task_plan'),
+                "task_completion": checkin_data.get('task_completion'),
+                "checkin_hour": checkin_data.get('checkin_hour')
             }
             
             response = requests.post(
