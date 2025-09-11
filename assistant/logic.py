@@ -165,8 +165,22 @@ class FocusAssistant:
             return {"insights": [], "patterns": []}
         
         df = pd.DataFrame(processed_data)
-        df['timestamp'] = pd.to_datetime(df['timestamp'])
-        df['date'] = pd.to_datetime(df['date'])
+        
+        # Safely convert timestamp and date columns
+        try:
+            df['timestamp'] = pd.to_datetime(df['timestamp'], errors='coerce')
+        except Exception:
+            # If timestamp conversion fails, try to use date column or current time
+            df['timestamp'] = pd.to_datetime(df.get('date', datetime.now()), errors='coerce')
+        
+        try:
+            df['date'] = pd.to_datetime(df['date'], errors='coerce')
+        except Exception:
+            # If date conversion fails, use timestamp as date
+            df['date'] = df['timestamp']
+        
+        # Remove any rows where both timestamp and date are NaT (Not a Time)
+        df = df.dropna(subset=['timestamp'])
         
         insights = []
         patterns = []
