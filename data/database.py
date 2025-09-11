@@ -39,6 +39,22 @@ class DatabaseManager:
                 )
             """)
             
+            # Weekly Reflections
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS weekly_reflections (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_email TEXT NOT NULL,
+                    week_start_date DATE NOT NULL,
+                    week_end_date DATE NOT NULL,
+                    summary_text TEXT NOT NULL,
+                    insights TEXT,         -- JSON string
+                    patterns TEXT,         -- JSON string
+                    recommendations TEXT,  -- JSON string
+                    data_summary TEXT,     -- JSON string
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            
             # Mood Logs
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS mood_logs (
@@ -347,6 +363,77 @@ class DatabaseManager:
                 })
             return logs
     
+    def save_weekly_reflection(self, user_email: str, week_start_date: str, week_end_date: str, 
+                              summary_text: str, insights: dict = None, patterns: dict = None, 
+                              recommendations: dict = None, data_summary: dict = None) -> None:
+        """Save a weekly reflection entry"""
+        import json
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO weekly_reflections (user_email, week_start_date, week_end_date, 
+                                              summary_text, insights, patterns, recommendations, data_summary)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """, (user_email, week_start_date, week_end_date, summary_text, 
+                  json.dumps(insights or {}), json.dumps(patterns or {}), 
+                  json.dumps(recommendations or {}), json.dumps(data_summary or {})))
+            conn.commit()
+    
+    def get_weekly_reflections(self, user_email: str, limit: int = 10) -> List[Dict[str, Any]]:
+        """Get weekly reflections for a user"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT week_start_date, week_end_date, summary_text, insights, patterns, 
+                       recommendations, data_summary, created_at
+                FROM weekly_reflections 
+                WHERE user_email = ?
+                ORDER BY week_start_date DESC
+                LIMIT ?
+            """, (user_email, limit))
+            
+            reflections = []
+            for row in cursor.fetchall():
+                import json
+                reflections.append({
+                    "week_start_date": row[0],
+                    "week_end_date": row[1],
+                    "summary_text": row[2],
+                    "insights": json.loads(row[3]) if row[3] else {},
+                    "patterns": json.loads(row[4]) if row[4] else {},
+                    "recommendations": json.loads(row[5]) if row[5] else {},
+                    "data_summary": json.loads(row[6]) if row[6] else {},
+                    "created_at": row[7]
+                })
+            return reflections
+    
+    def get_weekly_reflection_by_week(self, user_email: str, week_start_date: str) -> Dict[str, Any]:
+        """Get a specific weekly reflection by week start date"""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT week_start_date, week_end_date, summary_text, insights, patterns, 
+                       recommendations, data_summary, created_at
+                FROM weekly_reflections 
+                WHERE user_email = ? AND week_start_date = ?
+                LIMIT 1
+            """, (user_email, week_start_date))
+            
+            row = cursor.fetchone()
+            if row:
+                import json
+                return {
+                    "week_start_date": row[0],
+                    "week_end_date": row[1],
+                    "summary_text": row[2],
+                    "insights": json.loads(row[3]) if row[3] else {},
+                    "patterns": json.loads(row[4]) if row[4] else {},
+                    "recommendations": json.loads(row[5]) if row[5] else {},
+                    "data_summary": json.loads(row[6]) if row[6] else {},
+                    "created_at": row[7]
+                }
+            return None
+    
     def save_checkin(self, user_email: str, checkin_data: Dict[str, Any]):
         """Save a check-in entry"""
         with sqlite3.connect(self.db_path) as conn:
@@ -468,6 +555,7 @@ class DatabaseManager:
             cursor.execute("DELETE FROM api_usage WHERE user_email = ?", (user_email,))
             cursor.execute("DELETE FROM mood_logs WHERE user_email = ?", (user_email,))
             cursor.execute("DELETE FROM checkins WHERE user_email = ?", (user_email,))
+            cursor.execute("DELETE FROM weekly_reflections WHERE user_email = ?", (user_email,))
             cursor.execute("DELETE FROM user_profiles WHERE user_email = ?", (user_email,))
             conn.commit()
     
@@ -479,7 +567,7 @@ class DatabaseManager:
             stats = {}
             
             # Count records in each table
-            for table in ['api_usage', 'mood_logs', 'checkins', 'user_profiles']:
+            for table in ['api_usage', 'mood_logs', 'checkins', 'weekly_reflections', 'user_profiles']:
                 cursor.execute(f"SELECT COUNT(*) FROM {table}")
                 stats[f"{table}_count"] = cursor.fetchone()[0]
             

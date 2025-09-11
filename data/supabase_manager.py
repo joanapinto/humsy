@@ -371,6 +371,89 @@ class SupabaseManager:
             st.error(f"Failed to get mood logs: {str(e)}")
             return []
     
+    def save_weekly_reflection(self, user_email: str, week_start_date: str, week_end_date: str, 
+                              summary_text: str, insights: dict = None, patterns: dict = None, 
+                              recommendations: dict = None, data_summary: dict = None) -> None:
+        """Save a weekly reflection entry"""
+        try:
+            if not self.supabase_url or not self.supabase_key:
+                raise Exception("Supabase URL or key not configured")
+            
+            data = {
+                "user_email": user_email,
+                "week_start_date": week_start_date,
+                "week_end_date": week_end_date,
+                "summary_text": summary_text,
+                "insights": insights or {},
+                "patterns": patterns or {},
+                "recommendations": recommendations or {},
+                "data_summary": data_summary or {}
+            }
+            
+            response = requests.post(
+                f"{self.supabase_url}/rest/v1/weekly_reflections",
+                headers=self.headers,
+                json=data
+            )
+            
+            if response.status_code not in [200, 201]:
+                raise Exception(f"Failed to save weekly reflection: {response.text}")
+                
+        except Exception as e:
+            st.error(f"Failed to save weekly reflection: {str(e)}")
+            raise
+    
+    def get_weekly_reflections(self, user_email: str, limit: int = 10) -> List[Dict]:
+        """Get weekly reflections for a user"""
+        try:
+            if not self.supabase_url or not self.supabase_key:
+                raise Exception("Supabase URL or key not configured")
+            
+            response = requests.get(
+                f"{self.supabase_url}/rest/v1/weekly_reflections",
+                headers=self.headers,
+                params={
+                    "user_email": f"eq.{user_email}",
+                    "order": "week_start_date.desc",
+                    "limit": str(limit)
+                }
+            )
+            
+            if response.status_code == 200:
+                return response.json()
+            else:
+                raise Exception(f"Failed to get weekly reflections: {response.text}")
+                
+        except Exception as e:
+            st.error(f"Failed to get weekly reflections: {str(e)}")
+            return []
+    
+    def get_weekly_reflection_by_week(self, user_email: str, week_start_date: str) -> Dict:
+        """Get a specific weekly reflection by week start date"""
+        try:
+            if not self.supabase_url or not self.supabase_key:
+                raise Exception("Supabase URL or key not configured")
+            
+            response = requests.get(
+                f"{self.supabase_url}/rest/v1/weekly_reflections",
+                headers=self.headers,
+                params={
+                    "user_email": f"eq.{user_email}",
+                    "week_start_date": f"eq.{week_start_date}",
+                    "limit": "1"
+                }
+            )
+            
+            if response.status_code == 200:
+                reflections = response.json()
+                return reflections[0] if reflections else None
+            else:
+                raise Exception(f"Failed to get weekly reflection: {response.text}")
+                
+        except Exception as e:
+            st.error(f"Failed to get weekly reflection: {str(e)}")
+            return None
+    
     def save_checkin(self, user_email: str, checkin_data: Dict[str, Any]):
         """Save a check-in entry"""
         try:
