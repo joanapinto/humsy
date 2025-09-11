@@ -269,7 +269,14 @@ def main():
     user_profile = load_user_profile(user_email)
     
     # Also check if user has an active goal (new onboarding system)
-    db = DatabaseManager()
+    # Initialize database with Supabase-first fallback
+    try:
+        from data.supabase_manager import SupabaseManager
+        db = SupabaseManager()
+    except Exception:
+        from data.database import DatabaseManager
+        db = DatabaseManager()
+    
     active_goal = db.get_active_goal(user_email)
     
     if not user_profile and not active_goal:
@@ -363,6 +370,36 @@ def main():
             
             # Display structured summary
             display_structured_summary(summary)
+            
+            # Save weekly reflection to database
+            try:
+                # Check if reflection already exists for this week
+                existing_reflection = db.get_weekly_reflection_by_week(user_email, start_date.strftime('%Y-%m-%d'))
+                
+                if not existing_reflection:
+                    # Save new reflection
+                    db.save_weekly_reflection(
+                        user_email=user_email,
+                        week_start_date=start_date.strftime('%Y-%m-%d'),
+                        week_end_date=end_date.strftime('%Y-%m-%d'),
+                        summary_text=summary,
+                        insights=extract_insights_from_summary(summary),
+                        patterns=week_analysis,
+                        recommendations=extract_recommendations_from_summary(summary),
+                        data_summary={
+                            'total_checkins': week_analysis['total_checkins'],
+                            'total_mood_entries': week_analysis['total_mood_entries'],
+                            'active_days': len(set(week_analysis['checkin_days'])),
+                            'energy_patterns': week_analysis['energy_patterns'],
+                            'mood_patterns': week_analysis['mood_patterns']
+                        }
+                    )
+                    st.success("💾 Weekly reflection saved to your personal archive!")
+                else:
+                    st.info("📝 Weekly reflection already exists for this week")
+                    
+            except Exception as e:
+                st.warning(f"⚠️ Could not save reflection: {str(e)}")
             
             # Record AI usage
             ai_service.usage_limiter.record_api_call(
@@ -614,6 +651,85 @@ def display_gpt_quota_badge(user_email):
     except Exception as e:
         # Silently fail if there's an issue with usage tracking
         pass
+
+def extract_insights_from_summary(summary_text: str) -> dict:
+    """Extract structured insights from the summary text"""
+    insights = {}
+    
+    # Split by numbered questions and extract answers
+    lines = summary_text.strip().split('\n')
+    current_question = None
+    current_answer = []
+    
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+            
+        # Check if this is a new question (starts with number and **)
+        if line.startswith(('1.', '2.', '3.', '4.', '5.')) and '**' in line:
+            # Save previous question if exists
+            if current_question and current_answer:
+                question_key = current_question.split('.')[0]  # Get question number
+                insights[f"question_{question_key}"] = {
+                    "question": current_question,
+                    "answer": ' '.join(current_answer)
+                }
+            
+            # Start new question
+            current_question = line
+            current_answer = []
+        elif current_question and line:
+            # Add to current answer
+            current_answer.append(line)
+    
+    # Save last question
+    if current_question and current_answer:
+        question_key = current_question.split('.')[0]
+        insights[f"question_{question_key}"] = {
+            "question": current_question,
+            "answer": ' '.join(current_answer)
+        }
+    
+    return insights
+
+def extract_recommendations_from_summary(summary_text: str) -> dict:
+    """Extract recommendations from the summary text"""
+    recommendations = {}
+    
+    # Look for specific recommendation patterns
+    lines = summary_text.strip().split('\n')
+    
+    for i, line in enumerate(lines):
+        line = line.strip()
+        
+        # Look for habit recommendations (question 3)
+        if '3.' in line and 'habit' in line.lower():
+            # Get the answer for this question
+            answer_lines = []
+            for j in range(i + 1, len(lines)):
+                next_line = lines[j].strip()
+                if next_line.startswith(('4.', '5.')) or not next_line:
+                    break
+                answer_lines.append(next_line)
+            
+            if answer_lines:
+                recommendations["habits"] = ' '.join(answer_lines)
+        
+        # Look for improvement recommendations (question 5)
+        elif '5.' in line and ('improvement' in line.lower() or 'consider' in line.lower()):
+            # Get the answer for this question
+            answer_lines = []
+            for j in range(i + 1, len(lines)):
+                next_line = lines[j].strip()
+                if not next_line:
+                    break
+                answer_lines.append(next_line)
+            
+            if answer_lines:
+                recommendations["improvements"] = ' '.join(answer_lines)
+    
+    return recommendations
 
 if __name__ == "__main__":
     main() 
