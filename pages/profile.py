@@ -302,7 +302,8 @@ def main():
     # Beta Tester Guide
     st.write("---")
     st.subheader("📋 Beta Tester Guide")
-    if st.button("📋 View Beta Guide", use_container_width=True):
+    st.info("💡 **Need help getting started?** Access the comprehensive beta tester guide with tips, features overview, and best practices.")
+    if st.button("📋 View Beta Guide", use_container_width=True, type="primary"):
         st.markdown("""
         ### 🚀 **Beta Tester Guide**
         

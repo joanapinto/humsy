@@ -106,12 +106,17 @@ def main():
         show_onboarding_flow()
         return
     
-    # Beta tester welcome message
+    # Beta tester welcome message - only show for first-time users
     if user_profile or active_goal:
-        # Check if this is a new user (first time seeing the welcome)
-        if "beta_welcome_shown" not in st.session_state:
-            st.session_state.beta_welcome_shown = True
-            
+        # Check if user has seen the beta guide before
+        user_email = get_user_email() or "me@example.com"
+        profile_data = active_goal if active_goal else user_profile
+        
+        # Check if beta guide has been shown before
+        beta_guide_shown = profile_data.get('beta_guide_shown', False) if profile_data else False
+        
+        if not beta_guide_shown:
+            # First time user - show the full beta guide
             st.success("🎉 **Welcome to Humsy Beta!**")
             
             with st.expander("📋 Beta Tester Guide", expanded=True):
@@ -208,9 +213,24 @@ def main():
                         st.switch_page("pages/history.py")
                 
                 st.markdown("---")
-                st.info("💡 **Tip:** You can always access this guide from the sidebar under 'Feedback'")
-        
-        st.write("Welcome to your personal focus assistant!")
+                st.info("💡 **Tip:** You can always access this guide from your Profile page")
+            
+            # Mark beta guide as shown and save to profile
+            if st.button("✅ I've read the guide - Continue to Humsy", type="secondary", use_container_width=True):
+                # Update profile to mark beta guide as shown
+                if active_goal:
+                    # Update active goal with beta guide flag
+                    active_goal['beta_guide_shown'] = True
+                    db.update_goal(active_goal['id'], active_goal)
+                elif user_profile:
+                    # Update user profile with beta guide flag
+                    user_profile['beta_guide_shown'] = True
+                    save_user_profile(user_profile, user_email)
+                
+                st.rerun()
+        else:
+            # Returning user - just show welcome message
+            st.write("Welcome to your personal focus assistant!")
     else:
         st.write("Welcome to your personal focus assistant!")
     
