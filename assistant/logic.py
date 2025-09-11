@@ -127,7 +127,33 @@ class FocusAssistant:
         if not self.mood_data:
             return {"insights": [], "patterns": []}
         
-        df = pd.DataFrame(self.mood_data)
+        # Convert mood data to DataFrame and handle both old and new formats
+        processed_data = []
+        for entry in self.mood_data:
+            # Handle new format (multiple moods)
+            if 'moods' in entry and entry['moods']:
+                for mood in entry['moods']:
+                    processed_data.append({
+                        'mood': mood,
+                        'timestamp': entry['timestamp'],
+                        'date': entry.get('date', entry['timestamp']),
+                        'notes': entry.get('notes', ''),
+                        'reasons': entry.get('reasons', {}).get(mood, [])
+                    })
+            # Handle old format (single mood with intensity)
+            elif 'mood' in entry:
+                processed_data.append({
+                    'mood': entry['mood'],
+                    'timestamp': entry['timestamp'],
+                    'date': entry.get('date', entry['timestamp']),
+                    'notes': entry.get('notes', ''),
+                    'intensity': entry.get('intensity', 5)  # Default intensity for old format
+                })
+        
+        if not processed_data:
+            return {"insights": [], "patterns": []}
+        
+        df = pd.DataFrame(processed_data)
         df['timestamp'] = pd.to_datetime(df['timestamp'])
         df['date'] = pd.to_datetime(df['date'])
         
@@ -136,41 +162,102 @@ class FocusAssistant:
         
         # Analyze mood by day of week
         df['day_of_week'] = df['timestamp'].dt.day_name()
-        day_avg = df.groupby('day_of_week')['intensity'].mean().sort_values(ascending=False)
         
-        if not day_avg.empty:
-            best_day = day_avg.index[0]
-            worst_day = day_avg.index[-1]
-            patterns.append(f"You tend to feel best on {best_day}s")
-            patterns.append(f"Your mood is typically lower on {worst_day}s")
+        # Use intensity if available (old format), otherwise count mood occurrences
+        if 'intensity' in df.columns:
+            day_avg = df.groupby('day_of_week')['intensity'].mean().sort_values(ascending=False)
+            if not day_avg.empty:
+                best_day = day_avg.index[0]
+                worst_day = day_avg.index[-1]
+                patterns.append(f"You tend to feel best on {best_day}s")
+                patterns.append(f"Your mood is typically lower on {worst_day}s")
+        else:
+            # New format: analyze mood frequency by day
+            mood_counts = df.groupby(['day_of_week', 'mood']).size().unstack(fill_value=0)
+            if not mood_counts.empty:
+                # Find most common positive mood by day
+                positive_moods = ['😊 Happy', '😌 Calm', '🤗 Excited', '💪 Confident']
+                for day in mood_counts.index:
+                    day_moods = mood_counts.loc[day]
+                    positive_count = day_moods[day_moods.index.intersection(positive_moods)].sum()
+                    if positive_count > 0:
+                        patterns.append(f"You tend to feel more positive on {day}s")
         
         # Analyze mood by time of day
         df['hour'] = df['timestamp'].dt.hour
-        hour_avg = df.groupby('hour')['intensity'].mean()
+        if 'intensity' in df.columns:
+            hour_avg = df.groupby('hour')['intensity'].mean()
         
-        if not hour_avg.empty:
+        if 'intensity' in df.columns and not hour_avg.empty:
             best_hour = hour_avg.idxmax()
             worst_hour = hour_avg.idxmin()
             patterns.append(f"Your peak mood time is around {best_hour}:00")
             patterns.append(f"Your mood tends to dip around {worst_hour}:00")
+        else:
+            # New format: analyze mood frequency by hour
+            hour_mood_counts = df.groupby(['hour', 'mood']).size().unstack(fill_value=0)
+            if not hour_mood_counts.empty:
+                # Find hours with most positive moods
+                positive_moods = ['😊 Happy', '😌 Calm', '🤗 Excited', '💪 Confident']
+                hour_positive = hour_mood_counts[hour_mood_counts.columns.intersection(positive_moods)].sum(axis=1)
+                if not hour_positive.empty:
+                    best_hour = hour_positive.idxmax()
+                    patterns.append(f"You tend to feel more positive around {best_hour}:00")
         
         # Recent trend analysis
         recent_data = df[df['timestamp'] > datetime.now() - timedelta(days=7)]
         if not recent_data.empty:
-            recent_avg = recent_data['intensity'].mean()
-            overall_avg = df['intensity'].mean()
-            
-            if recent_avg > overall_avg + 1:
-                insights.append("🎉 Your mood has been improving recently! Keep up the great work.")
-            elif recent_avg < overall_avg - 1:
-                insights.append("💙 Your mood has been lower than usual. Consider reaching out for support.")
+            if 'intensity' in df.columns:
+                recent_avg = recent_data['intensity'].mean()
+                overall_avg = df['intensity'].mean()
+                
+                if recent_avg > overall_avg + 1:
+                    insights.append("🎉 Your mood has been improving recently! Keep up the great work.")
+                elif recent_avg < overall_avg - 1:
+                    insights.append("💙 Your mood has been lower than usual. Consider reaching out for support.")
+            else:
+                # New format: analyze positive mood frequency
+                positive_moods = ['😊 Happy', '😌 Calm', '🤗 Excited', '💪 Confident']
+                recent_positive = recent_data[recent_data['mood'].isin(positive_moods)].shape[0]
+                overall_positive = df[df['mood'].isin(positive_moods)].shape[0]
+                recent_total = recent_data.shape[0]
+                overall_total = df.shape[0]
+                
+                if recent_total > 0 and overall_total > 0:
+                    recent_ratio = recent_positive / recent_total
+                    overall_ratio = overall_positive / overall_total
+                    
+                    if recent_ratio > overall_ratio + 0.1:
+                        insights.append("🎉 You've been feeling more positive recently! Keep up the great work.")
+                    elif recent_ratio < overall_ratio - 0.1:
+                        insights.append("💙 You've been feeling less positive recently. Consider reaching out for support.")
+        
+        # Get best day and hour for return values
+        best_day = None
+        best_hour = None
+        if 'intensity' in df.columns and not day_avg.empty:
+            best_day = day_avg.index[0]
+        elif not mood_counts.empty:
+            # Find day with most positive moods
+            positive_moods = ['😊 Happy', '😌 Calm', '🤗 Excited', '💪 Confident']
+            day_positive = mood_counts[mood_counts.columns.intersection(positive_moods)].sum(axis=1)
+            if not day_positive.empty:
+                best_day = day_positive.idxmax()
+        
+        if 'intensity' in df.columns and 'hour_avg' in locals() and not hour_avg.empty:
+            best_hour = hour_avg.idxmax()
+        elif 'hour_mood_counts' in locals() and not hour_mood_counts.empty:
+            positive_moods = ['😊 Happy', '😌 Calm', '🤗 Excited', '💪 Confident']
+            hour_positive = hour_mood_counts[hour_mood_counts.columns.intersection(positive_moods)].sum(axis=1)
+            if not hour_positive.empty:
+                best_hour = hour_positive.idxmax()
         
         return {
             "insights": insights,
             "patterns": patterns,
-            "best_day": day_avg.index[0] if not day_avg.empty else None,
-            "best_hour": best_hour if 'best_hour' in locals() else None,
-            "recent_trend": "improving" if recent_avg > overall_avg else "declining" if recent_avg < overall_avg else "stable"
+            "best_day": best_day,
+            "best_hour": best_hour,
+            "recent_trend": "improving" if "improving" in str(insights) else "declining" if "lower" in str(insights) or "less positive" in str(insights) else "stable"
         }
     
     def analyze_checkin_patterns(self) -> Dict:
