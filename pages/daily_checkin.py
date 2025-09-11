@@ -455,7 +455,12 @@ else:
     
     # Show previous check-in context if available
     if previous_checkin:
-        st.info(f"📝 **Previous check-in today:** {previous_checkin['time_period'].title()} at {datetime.fromisoformat(previous_checkin['timestamp']).strftime('%I:%M %p')}")
+        time_period = previous_checkin.get('time_period', 'Unknown')
+        if time_period and time_period != 'unknown':
+            time_period_display = time_period.title()
+        else:
+            time_period_display = "Previous"
+        st.info(f"📝 **Previous check-in today:** {time_period_display} at {datetime.fromisoformat(previous_checkin['timestamp']).strftime('%I:%M %p')}")
     
     # Time-aware encouragement (cached to avoid repeated AI calls)
     today = datetime.now().strftime('%Y-%m-%d')
@@ -485,7 +490,7 @@ else:
                 yesterday_checkins = [
                     checkin for checkin in checkin_data
                     if datetime.fromisoformat(checkin['timestamp']).date() == yesterday
-                    and checkin['time_period'] == 'evening'
+                    and checkin.get('time_period') == 'evening'
                 ]
                 if yesterday_checkins:
                     yesterday_evening = yesterday_checkins[0]
@@ -732,7 +737,7 @@ else:
             if today_checkins:
                 morning_checkins = [
                     checkin for checkin in today_checkins
-                    if checkin['time_period'] == 'morning'
+                    if checkin.get('time_period') == 'morning'
                 ]
                 if morning_checkins:
                     morning_checkin = morning_checkins[0]
@@ -985,9 +990,9 @@ else:
             
             if today_checkins:
                 for checkin in today_checkins:
-                    if checkin['time_period'] == 'morning':
+                    if checkin.get('time_period') == 'morning':
                         morning_checkin = checkin
-                    elif checkin['time_period'] == 'afternoon':
+                    elif checkin.get('time_period') == 'afternoon':
                         afternoon_checkin = checkin
             
             # Show today's journey
