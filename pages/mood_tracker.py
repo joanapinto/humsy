@@ -577,12 +577,31 @@ else:
         
         for entry in recent_data:
             # Handle both old format (single mood) and new format (multiple moods)
+            # Handle different timestamp formats
+            if 'timestamp' in entry:
+                # Convert timestamp to date and time
+                from datetime import datetime
+                try:
+                    if isinstance(entry['timestamp'], str):
+                        dt = datetime.fromisoformat(entry['timestamp'].replace('Z', '+00:00'))
+                    else:
+                        dt = entry['timestamp']
+                    date_str = dt.strftime('%Y-%m-%d')
+                    time_str = dt.strftime('%H:%M')
+                except:
+                    date_str = "Unknown Date"
+                    time_str = "Unknown Time"
+            else:
+                # Fallback to separate date/time fields if they exist
+                date_str = entry.get('date', 'Unknown Date')
+                time_str = entry.get('time', 'Unknown Time')
+            
             if 'moods' in entry:
                 mood_display = ", ".join(entry['moods'])
-                title = f"{mood_display} - {entry['date']} {entry['time']}"
+                title = f"{mood_display} - {date_str} {time_str}"
             else:
                 mood_display = entry.get('mood', 'Unknown')
-                title = f"{mood_display} - {entry['date']} {entry['time']}"
+                title = f"{mood_display} - {date_str} {time_str}"
             
             with st.expander(title):
                 # Show reasons if available
