@@ -452,8 +452,7 @@ class SupabaseManager:
                 raise Exception("Supabase URL or key not configured")
             
             data = {
-                "status": status,
-                "last_scheduled": datetime.now().isoformat()
+                "status": status
             }
             
             response = requests.patch(
