@@ -231,16 +231,16 @@ def main():
         else:
             # Returning user - just show welcome message
             st.write("Welcome to your personal focus assistant!")
-    else:
-        st.write("Welcome to your personal focus assistant!")
     
     # User profile or active goal exists, show main app
     # Load user data for assistant
     mood_data = load_mood_data()
     checkin_data = load_checkin_data()
     
-    # Initialize assistant
-    assistant = FallbackAssistant(user_profile, mood_data, checkin_data)
+    # Initialize assistant with caching
+    if 'assistant' not in st.session_state:
+        st.session_state.assistant = FallbackAssistant(user_profile, mood_data, checkin_data)
+    assistant = st.session_state.assistant
     
     # Enhanced Dashboard Header
     st.write("---")
@@ -356,7 +356,14 @@ def main():
                 st.write(encouragement)
         
         with col2:
-            tip = assistant.get_productivity_tip()
+            # Cache productivity tip for the day
+            if 'daily_tip' not in st.session_state or st.session_state.get('tip_date') != today:
+                tip = assistant.get_productivity_tip()
+                st.session_state.daily_tip = tip
+                st.session_state.tip_date = today
+            else:
+                tip = st.session_state.daily_tip
+                
             if tip:
                 st.markdown("💡 **Today's Tip:**")
                 st.write(tip)
