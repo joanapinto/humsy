@@ -30,6 +30,74 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# Browser compatibility check and graceful degradation
+browser_compatibility_script = """
+<script>
+// Check for modern regex support (named capture groups)
+function checkBrowserCompatibility() {
+    try {
+        // Test named capture groups (introduced in ES2018)
+        new RegExp('(?<test>pattern)');
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
+// Check for other modern features
+function checkModernFeatures() {
+    try {
+        // Test optional chaining (introduced in ES2020)
+        const test = { a: { b: 1 } };
+        const result = test?.a?.b;
+        
+        // Test nullish coalescing (introduced in ES2020)
+        const nullish = null ?? 'default';
+        
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
+// Run compatibility checks
+const isCompatible = checkBrowserCompatibility() && checkModernFeatures();
+
+if (!isCompatible) {
+    // Show browser compatibility warning
+    const warningDiv = document.createElement('div');
+    warningDiv.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        background: #ff6b6b;
+        color: white;
+        padding: 10px;
+        text-align: center;
+        z-index: 9999;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    `;
+    
+    warningDiv.innerHTML = `
+        <strong>⚠️ Browser Compatibility Issue</strong><br>
+        Your browser version is outdated. For the best experience, please update to:<br>
+        <strong>Chrome 64+</strong> | <strong>Safari 11.1+</strong> | <strong>Firefox 60+</strong><br>
+        <small>Some features may not work correctly with older browsers.</small>
+    `;
+    
+    document.body.insertBefore(warningDiv, document.body.firstChild);
+    
+    // Add padding to body to account for warning banner
+    document.body.style.paddingTop = '80px';
+    
+    // Log the issue for debugging
+    console.warn('Browser compatibility issue detected. User should update their browser.');
+}
+</script>
+"""
+
 # Hide Streamlit's default navigation
 hide_streamlit_navigation = """
 <style>
@@ -47,9 +115,74 @@ hide_streamlit_navigation = """
     .css-1544g2n {
         display: none;
     }
+    
+    /* Ensure content is readable even with warning banner */
+    .main .block-container {
+        padding-top: 1rem;
+    }
 </style>
 """
+
+# Apply browser compatibility check and navigation hiding
+st.markdown(browser_compatibility_script, unsafe_allow_html=True)
 st.markdown(hide_streamlit_navigation, unsafe_allow_html=True)
+
+# Add error boundary for regex issues
+error_boundary_script = """
+<script>
+// Global error handler for regex issues
+window.addEventListener('error', function(e) {
+    if (e.message && e.message.includes('Invalid regular expression')) {
+        console.error('Regex compatibility issue detected:', e.message);
+        
+        // Show a user-friendly error message
+        const errorDiv = document.createElement('div');
+        errorDiv.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border: 2px solid #ff6b6b;
+            border-radius: 8px;
+            padding: 20px;
+            max-width: 400px;
+            text-align: center;
+            z-index: 10000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        `;
+        
+        errorDiv.innerHTML = `
+            <h3 style="color: #ff6b6b; margin-top: 0;">⚠️ Browser Compatibility Issue</h3>
+            <p>Your browser version is outdated and doesn't support modern web features.</p>
+            <p><strong>Please update your browser to:</strong></p>
+            <ul style="text-align: left; display: inline-block;">
+                <li>Chrome 64+ (2018)</li>
+                <li>Safari 11.1+ (2018)</li>
+                <li>Firefox 60+ (2018)</li>
+            </ul>
+            <button onclick="this.parentElement.remove()" style="
+                background: #ff6b6b;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 4px;
+                cursor: pointer;
+                margin-top: 10px;
+            ">Got it</button>
+        `;
+        
+        document.body.appendChild(errorDiv);
+        
+        // Prevent the error from propagating
+        e.preventDefault();
+        return false;
+    }
+});
+</script>
+"""
+st.markdown(error_boundary_script, unsafe_allow_html=True)
 
 # Require beta access for the main app
 require_beta_access()
