@@ -5,36 +5,21 @@ import streamlit as st
 from auth import get_user_email, logout, get_admin_email
 
 def add_browser_compatibility_check():
-    """Add browser compatibility check to prevent regex errors"""
+    """Add browser compatibility notice to sidebar"""
     st.markdown("""
-    <script>
-    // Simple browser compatibility check
-    try {
-        // Test for modern regex features that might cause issues
-        new RegExp('(?<test>pattern)');
-    } catch (e) {
-        // If regex fails, show a subtle warning
-        console.warn('Browser compatibility issue detected. Some features may not work correctly.');
-        
-        // Add a subtle indicator in the sidebar
-        const sidebar = document.querySelector('[data-testid="stSidebar"]');
-        if (sidebar) {
-            const warning = document.createElement('div');
-            warning.style.cssText = `
-                background: #fff3cd;
-                border: 1px solid #ffeaa7;
-                color: #856404;
-                padding: 8px;
-                margin: 10px;
-                border-radius: 4px;
-                font-size: 12px;
-                text-align: center;
-            `;
-            warning.innerHTML = '⚠️ Update browser for best experience';
-            sidebar.appendChild(warning);
-        }
-    }
-    </script>
+    <div style="
+        background: #fff3cd;
+        border: 1px solid #ffeaa7;
+        color: #856404;
+        padding: 8px;
+        margin: 10px 0;
+        border-radius: 4px;
+        font-size: 12px;
+        text-align: center;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    ">
+        ⚠️ Update browser for best experience
+    </div>
     """, unsafe_allow_html=True)
 
 def show_standard_sidebar():
