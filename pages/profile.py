@@ -284,19 +284,19 @@ def main():
             
             Please take a moment to share your thoughts about Humsy:
             
-            **[📋 Open Feedback Form](https://tally.so/r/mBr11Q)**
+            **[Open Feedback Form](https://tally.so/r/mBr11Q)**
             
             Your feedback helps us make the app better for everyone! 🚀
             """)
     
     with col2:
         if st.button("🐛 Report Bug", use_container_width=True):
-            st.markdown("**[🐛 Open Bug Report Form](https://tally.so/r/waR7Eq)**")
+            st.markdown("**[Open Bug Report Form](https://tally.so/r/waR7Eq)**")
             st.info("🐛 **Bug Report**\n\nPlease detail step by step how to reproduce the bug. Include:\n- What you were trying to do\n- What happened instead\n- Steps to reproduce")
     
     with col3:
         if st.button("💡 Suggest Feature", use_container_width=True):
-            st.markdown("**[💡 Open Feature Suggestion Form](https://tally.so/r/mROLG4)**")
+            st.markdown("**[Open Feature Suggestion Form](https://tally.so/r/mROLG4)**")
             st.info("💡 **Feature Suggestion**\n\nHave an idea for a new feature? We'd love to hear it! Share your thoughts on what could make Humsy even better.")
     
     # Beta Tester Guide
