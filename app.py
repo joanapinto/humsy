@@ -30,22 +30,55 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Simple browser compatibility notice (server-side)
-st.markdown("""
-<div style="
-    background: #fff3cd;
-    border: 1px solid #ffeaa7;
-    color: #856404;
-    padding: 12px;
-    border-radius: 4px;
-    margin-bottom: 20px;
-    text-align: center;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-">
-    <strong>⚠️ Browser Compatibility Notice</strong><br>
-    For the best experience, please use <strong>Chrome 64+</strong>, <strong>Safari 11.1+</strong>, or <strong>Firefox 60+</strong>
-</div>
-""", unsafe_allow_html=True)
+# Browser compatibility check - only show notice if there's an issue
+browser_compatibility_script = """
+<script>
+// Check if the page loaded successfully
+document.addEventListener('DOMContentLoaded', function() {
+    // If we reach this point, the page loaded without major errors
+    // Hide any compatibility notices
+    const notices = document.querySelectorAll('[data-browser-compatibility]');
+    notices.forEach(notice => notice.style.display = 'none');
+});
+
+// Global error handler for regex issues
+window.addEventListener('error', function(e) {
+    if (e.message && e.message.includes('Invalid regular expression')) {
+        // Show compatibility notice only when there's an actual error
+        const noticeDiv = document.createElement('div');
+        noticeDiv.setAttribute('data-browser-compatibility', 'true');
+        noticeDiv.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: #ff6b6b;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            z-index: 9999;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        `;
+        
+        noticeDiv.innerHTML = `
+            <strong>⚠️ Browser Compatibility Issue</strong><br>
+            Your browser version is outdated. For the best experience, please update to:<br>
+            <strong>Chrome 64+</strong> | <strong>Safari 11.1+</strong> | <strong>Firefox 60+</strong><br>
+            <small>Some features may not work correctly with older browsers.</small>
+        `;
+        
+        document.body.insertBefore(noticeDiv, document.body.firstChild);
+        document.body.style.paddingTop = '100px';
+        
+        // Prevent the error from propagating
+        e.preventDefault();
+        return false;
+    }
+});
+</script>
+"""
+st.markdown(browser_compatibility_script, unsafe_allow_html=True)
 
 # Hide Streamlit's default navigation
 hide_streamlit_navigation = """

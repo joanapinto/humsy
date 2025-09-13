@@ -4,28 +4,8 @@ Shared sidebar navigation for all pages
 import streamlit as st
 from auth import get_user_email, logout, get_admin_email
 
-def add_browser_compatibility_check():
-    """Add browser compatibility notice to sidebar"""
-    st.markdown("""
-    <div style="
-        background: #fff3cd;
-        border: 1px solid #ffeaa7;
-        color: #856404;
-        padding: 8px;
-        margin: 10px 0;
-        border-radius: 4px;
-        font-size: 12px;
-        text-align: center;
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    ">
-        ⚠️ Update browser for best experience
-    </div>
-    """, unsafe_allow_html=True)
-
 def show_standard_sidebar():
     """Display the standard navigation sidebar on all pages"""
-    # Add browser compatibility check
-    add_browser_compatibility_check()
     
     # Check if we're on a page that needs additional sidebar content
     current_page = st.session_state.get('current_page', '')
