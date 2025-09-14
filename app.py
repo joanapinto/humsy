@@ -30,37 +30,70 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Browser compatibility notice for Safari and older browsers
-browser_compatibility_notice = """
-<div id="browser-notice" style="display: none; position: fixed; top: 0; left: 0; right: 0; background: #ff6b6b; color: white; padding: 15px; text-align: center; z-index: 9999; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-    <strong>⚠️ Browser Compatibility Issue</strong><br>
-    Safari 16 has known issues with this app. Please try:<br>
-    <strong>Chrome</strong> | <strong>Firefox</strong> | <strong>Safari 17+</strong><br>
-    <small>This is a known Safari 16 compatibility issue with Streamlit.</small>
+# iOS 16 compatibility check
+ios16_notice = """
+<div id="ios16-notice" style="display: none; position: fixed; top: 0; left: 0; right: 0; background: #ff6b6b; color: white; padding: 20px; text-align: center; z-index: 9999; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+    <div style="max-width: 600px; margin: 0 auto;">
+        <h2 style="margin: 0 0 15px 0; font-size: 24px;">📱 iOS 16 Compatibility Issue</h2>
+        <p style="margin: 0 0 15px 0; font-size: 16px; line-height: 1.5;">
+            <strong>This app doesn't work on iPhone with iOS 16</strong> due to a known Safari compatibility issue.
+        </p>
+        <p style="margin: 0 0 20px 0; font-size: 14px; line-height: 1.4;">
+            <strong>To use this app, please:</strong><br>
+            • Update your iPhone to iOS 17 or later, OR<br>
+            • Use a computer with Chrome, Firefox, or Safari 17+
+        </p>
+        <p style="margin: 0; font-size: 12px; opacity: 0.8;">
+            This is a known issue with iOS 16 Safari and Streamlit apps.
+        </p>
+    </div>
 </div>
 
 <script>
-// Detect Safari and show notice
-function isSafari() {
-    return /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+// Detect iOS 16 specifically
+function isIOS16() {
+    const userAgent = navigator.userAgent;
+    const isIOS = /iPad|iPhone|iPod/.test(userAgent);
+    const isSafari = /Safari/.test(userAgent) && !/Chrome/.test(userAgent);
+    
+    if (isIOS && isSafari) {
+        // Check for iOS 16 specifically
+        const match = userAgent.match(/OS (\d+)_/);
+        if (match && parseInt(match[1]) === 16) {
+            return true;
+        }
+    }
+    return false;
 }
 
-// Show notice for Safari or if there's a regex error
-if (isSafari()) {
-    document.getElementById('browser-notice').style.display = 'block';
-    document.body.style.paddingTop = '100px';
+// Show notice for iOS 16
+if (isIOS16()) {
+    document.getElementById('ios16-notice').style.display = 'block';
+    document.body.style.paddingTop = '200px';
+    
+    // Hide the main content
+    const mainContent = document.querySelector('[data-testid="stAppViewContainer"]');
+    if (mainContent) {
+        mainContent.style.display = 'none';
+    }
 }
 
-// Also show notice if there's a regex error
+// Also show notice if there's a regex error (fallback)
 window.addEventListener('error', function(e) {
     if (e.message && e.message.includes('Invalid regular expression')) {
-        document.getElementById('browser-notice').style.display = 'block';
-        document.body.style.paddingTop = '100px';
+        document.getElementById('ios16-notice').style.display = 'block';
+        document.body.style.paddingTop = '200px';
+        
+        // Hide the main content
+        const mainContent = document.querySelector('[data-testid="stAppViewContainer"]');
+        if (mainContent) {
+            mainContent.style.display = 'none';
+        }
     }
 });
 </script>
 """
-st.components.v1.html(browser_compatibility_notice, height=0)
+st.components.v1.html(ios16_notice, height=0)
 
 # Hide Streamlit's default navigation
 hide_streamlit_navigation = """
