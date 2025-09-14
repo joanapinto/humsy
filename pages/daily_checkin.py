@@ -1309,9 +1309,9 @@ if 'morning_feedback' in st.session_state:
     if feedback == "👍 Great!":
         st.success("Thanks! We're glad it's working well for you! 🙏")
     elif feedback == "🤔 Could be better":
-        st.info("We'd love to hear your suggestions! [📝 Feedback Form](https://tally.so/r/mBr11Q)")
+        st.info("We'd love to hear your suggestions! Feedback Form: https://tally.so/r/mBr11Q")
     elif feedback == "📝 Share detailed feedback":
-        st.markdown("**[📋 Open Feedback Form](https://tally.so/r/mBr11Q)**")
+        st.write("**Open Feedback Form:** https://tally.so/r/mBr11Q")
     
     if st.button("Clear Feedback", key="clear_feedback"):
         del st.session_state['morning_feedback']
