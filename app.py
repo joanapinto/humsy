@@ -60,7 +60,7 @@ window.addEventListener('error', function(e) {
 });
 </script>
 """
-st.markdown(browser_compatibility_notice, unsafe_allow_html=True)
+st.components.v1.html(browser_compatibility_notice, height=0)
 
 # Hide Streamlit's default navigation
 hide_streamlit_navigation = """
@@ -88,7 +88,7 @@ hide_streamlit_navigation = """
 """
 
 # Apply navigation hiding
-st.markdown(hide_streamlit_navigation, unsafe_allow_html=True)
+st.components.v1.html(hide_streamlit_navigation, height=0)
 
 # Require beta access for the main app
 require_beta_access()

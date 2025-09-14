@@ -167,7 +167,7 @@ def require_beta_access():
         });
         </script>
         """
-        st.markdown(browser_compatibility_notice, unsafe_allow_html=True)
+        st.components.v1.html(browser_compatibility_notice, height=0)
         
         # Stop execution
         st.stop()
