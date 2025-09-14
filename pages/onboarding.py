@@ -113,7 +113,7 @@ else:
 st.subheader("🎯 Let's create your personalized plan")
 
 # Question 1: Main goal (mandatory)
-st.markdown("**1. What's your main goal?***")
+st.markdown("**1. What's your main goal?** (mandatory)")
 goal_title = st.text_input(
     "What do you want to achieve?",
     value=goal,
@@ -131,14 +131,14 @@ why_matters = st.text_area(
 )
 
 # Question 3: Target date (mandatory)
-st.markdown("**3. Do you have a target date?***")
+st.markdown("**3. Do you have a target date?** (mandatory)")
 has_deadline = st.radio("Do you have a deadline?", ["Yes", "No"], horizontal=True)
 goal_deadline = None
 if has_deadline == "Yes":
     goal_deadline = st.date_input("When is your target date?")
 
 # Question 4: Success metric (mandatory)
-st.markdown("**4. How will we know you've succeeded?***")
+st.markdown("**4. How will we know you've succeeded?** (mandatory)")
 success_metric = st.text_input(
     "What does success look like?",
     value=profile_data.get("success_metric", "") if profile_data else "",
@@ -147,7 +147,7 @@ success_metric = st.text_input(
 )
 
 # Question 5: Starting point (mandatory)
-st.markdown("**5. What's your starting point right now?***")
+st.markdown("**5. What's your starting point right now?** (mandatory)")
 starting_point = st.text_area(
     "Where are you starting from?",
     value=profile_data.get("starting_point", "") if profile_data else "",
@@ -156,7 +156,7 @@ starting_point = st.text_area(
 )
 
 # Question 6: Weekly time (mandatory)
-st.markdown("**6. Realistically, how much time can you give this each week?***")
+st.markdown("**6. Realistically, how much time can you give this each week?** (mandatory)")
 weekly_time = st.select_slider(
     "Weekly time commitment",
     options=["< 1 hour", "1–2 hours", "2–4 hours", "4–6 hours", "6+ hours"],

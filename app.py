@@ -118,12 +118,12 @@ def show_onboarding_flow():
     
     st.markdown("### 🎯 What to Expect:")
     st.markdown("""
-    - **🎯 Define Your Main Goal*** - What do you want to achieve?
+    - **🎯 Define Your Main Goal** (mandatory) - What do you want to achieve?
     - **💭 Understand Your Why** - What drives you to pursue this goal?
-    - **📅 Set Target Date*** - When do you want to achieve it?
-    - **📊 Define Success*** - How will you know you've succeeded?
-    - **📍 Assess Starting Point*** - Where are you starting from?
-    - **⏰ Plan Weekly Time*** - How much time can you commit?
+    - **📅 Set Target Date** (mandatory) - When do you want to achieve it?
+    - **📊 Define Success** (mandatory) - How will you know you've succeeded?
+    - **📍 Assess Starting Point** (mandatory) - Where are you starting from?
+    - **⏰ Plan Weekly Time** (mandatory) - How much time can you commit?
     - **⚡ Identify Energy Patterns** - When do you have peak energy?
     - **🚫 Set Free Days** - Which days do you want to keep free?
     - **🎚️ Choose Intensity** - How ambitious should we start?
@@ -136,7 +136,7 @@ def show_onboarding_flow():
     - **🤖 Generate Plan** - Create your personalized roadmap
     """)
     
-    st.markdown("*Fields marked with * are mandatory*")
+    st.markdown("*Fields marked with asterisk (*) are mandatory*")
     
     if st.button("🚀 Start Comprehensive Onboarding", type="primary", use_container_width=True):
         st.switch_page("pages/onboarding.py")
@@ -285,9 +285,9 @@ def main():
                     save_user_profile(user_profile, user_email)
                 
                 st.rerun()
-        else:
+    else:
             # Returning user - just show welcome message
-            st.write("Welcome to your personal focus assistant!")
+        st.write("Welcome to your personal focus assistant!")
     
     # User profile or active goal exists, show main app
     # Load user data for assistant
