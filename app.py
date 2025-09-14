@@ -294,10 +294,10 @@ def main():
             if st.button("✏️ Want to change?", use_container_width=True):
                 st.switch_page("pages/profile.py")
         elif user_profile:
-        current_goal = user_profile.get('goal', 'Not set')
-        st.write(f"**Your Goal:** {current_goal}")
-        if st.button("✏️ Want to change?", use_container_width=True):
-            st.switch_page("pages/profile.py")
+            current_goal = user_profile.get('goal', 'Not set')
+            st.write(f"**Your Goal:** {current_goal}")
+            if st.button("✏️ Want to change?", use_container_width=True):
+                st.switch_page("pages/profile.py")
         else:
             st.write("**Your Goal:** Not set")
             if st.button("✏️ Set your goal?", use_container_width=True):
@@ -384,7 +384,7 @@ def main():
             today = datetime.now().strftime('%Y-%m-%d')
             if ('daily_encouragement' not in st.session_state or 
                 st.session_state.get('encouragement_date') != today):
-            encouragement = assistant.get_daily_encouragement()
+                encouragement = assistant.get_daily_encouragement()
                 st.session_state.daily_encouragement = encouragement
                 st.session_state.encouragement_date = today
             else:
@@ -397,7 +397,7 @@ def main():
         with col2:
             # Cache productivity tip for the day
             if 'daily_tip' not in st.session_state or st.session_state.get('tip_date') != today:
-            tip = assistant.get_productivity_tip()
+                tip = assistant.get_productivity_tip()
                 st.session_state.daily_tip = tip
                 st.session_state.tip_date = today
             else:
