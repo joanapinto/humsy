@@ -30,7 +30,26 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Browser compatibility script removed to prevent regex errors
+# Browser compatibility notice for older browsers
+browser_compatibility_notice = """
+<div id="browser-notice" style="display: none; position: fixed; top: 0; left: 0; right: 0; background: #ff6b6b; color: white; padding: 15px; text-align: center; z-index: 9999; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+    <strong>⚠️ Browser Compatibility Issue</strong><br>
+    Your browser version is outdated. For the best experience, please update to:<br>
+    <strong>Chrome 64+</strong> | <strong>Safari 11.1+</strong> | <strong>Firefox 60+</strong><br>
+    <small>Some features may not work correctly with older browsers.</small>
+</div>
+
+<script>
+// Only show notice if there's a regex error
+window.addEventListener('error', function(e) {
+    if (e.message && e.message.includes('Invalid regular expression')) {
+        document.getElementById('browser-notice').style.display = 'block';
+        document.body.style.paddingTop = '100px';
+    }
+});
+</script>
+"""
+st.markdown(browser_compatibility_notice, unsafe_allow_html=True)
 
 # Hide Streamlit's default navigation
 hide_streamlit_navigation = """
