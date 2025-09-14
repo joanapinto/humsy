@@ -30,55 +30,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Browser compatibility check - only show notice if there's an issue
-browser_compatibility_script = """
-<script>
-// Check if the page loaded successfully
-document.addEventListener('DOMContentLoaded', function() {
-    // If we reach this point, the page loaded without major errors
-    // Hide any compatibility notices
-    const notices = document.querySelectorAll('[data-browser-compatibility]');
-    notices.forEach(notice => notice.style.display = 'none');
-});
-
-// Global error handler for regex issues
-window.addEventListener('error', function(e) {
-    if (e.message && e.message.includes('Invalid regular expression')) {
-        // Show compatibility notice only when there's an actual error
-        const noticeDiv = document.createElement('div');
-        noticeDiv.setAttribute('data-browser-compatibility', 'true');
-        noticeDiv.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            background: #ff6b6b;
-            color: white;
-            padding: 15px;
-            text-align: center;
-            z-index: 9999;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        `;
-        
-        noticeDiv.innerHTML = `
-            <strong>⚠️ Browser Compatibility Issue</strong><br>
-            Your browser version is outdated. For the best experience, please update to:<br>
-            <strong>Chrome 64+</strong> | <strong>Safari 11.1+</strong> | <strong>Firefox 60+</strong><br>
-            <small>Some features may not work correctly with older browsers.</small>
-        `;
-        
-        document.body.insertBefore(noticeDiv, document.body.firstChild);
-        document.body.style.paddingTop = '100px';
-        
-        // Prevent the error from propagating
-        e.preventDefault();
-        return false;
-    }
-});
-</script>
-"""
-st.markdown(browser_compatibility_script, unsafe_allow_html=True)
+# Browser compatibility script removed to prevent regex errors
 
 # Hide Streamlit's default navigation
 hide_streamlit_navigation = """
@@ -312,10 +264,10 @@ def main():
             if st.button("✏️ Want to change?", use_container_width=True):
                 st.switch_page("pages/profile.py")
         elif user_profile:
-            current_goal = user_profile.get('goal', 'Not set')
-            st.write(f"**Your Goal:** {current_goal}")
-            if st.button("✏️ Want to change?", use_container_width=True):
-                st.switch_page("pages/profile.py")
+        current_goal = user_profile.get('goal', 'Not set')
+        st.write(f"**Your Goal:** {current_goal}")
+        if st.button("✏️ Want to change?", use_container_width=True):
+            st.switch_page("pages/profile.py")
         else:
             st.write("**Your Goal:** Not set")
             if st.button("✏️ Set your goal?", use_container_width=True):
@@ -402,7 +354,7 @@ def main():
             today = datetime.now().strftime('%Y-%m-%d')
             if ('daily_encouragement' not in st.session_state or 
                 st.session_state.get('encouragement_date') != today):
-                encouragement = assistant.get_daily_encouragement()
+            encouragement = assistant.get_daily_encouragement()
                 st.session_state.daily_encouragement = encouragement
                 st.session_state.encouragement_date = today
             else:
@@ -415,7 +367,7 @@ def main():
         with col2:
             # Cache productivity tip for the day
             if 'daily_tip' not in st.session_state or st.session_state.get('tip_date') != today:
-                tip = assistant.get_productivity_tip()
+            tip = assistant.get_productivity_tip()
                 st.session_state.daily_tip = tip
                 st.session_state.tip_date = today
             else:
