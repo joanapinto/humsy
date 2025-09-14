@@ -123,6 +123,3 @@ else:
                 
             except Exception as e:
                 st.error(f"❌ Error saving reflection: {str(e)}")
-                st.write(f"🔍 Error type: {type(e).__name__}")
-                import traceback
-                st.write(f"🔍 Full traceback: {traceback.format_exc()}")

@@ -373,18 +373,10 @@ def main():
             
             # Save weekly reflection to database
             try:
-                st.write("🔍 **Debug: Attempting to save weekly reflection...**")
-                st.write(f"🔍 Database type: {type(db).__name__}")
-                st.write(f"🔍 User email: {user_email}")
-                st.write(f"🔍 Week start: {start_date.strftime('%Y-%m-%d')}")
-                
                 # Check if reflection already exists for this week
-                st.write("🔍 Checking for existing reflection...")
                 existing_reflection = db.get_weekly_reflection_by_week(user_email, start_date.strftime('%Y-%m-%d'))
-                st.write(f"🔍 Existing reflection found: {existing_reflection is not None}")
                 
                 if not existing_reflection:
-                    st.write("🔍 No existing reflection, saving new one...")
                     # Save new reflection
                     db.save_weekly_reflection(
                         user_email=user_email,
@@ -408,9 +400,6 @@ def main():
                     
             except Exception as e:
                 st.error(f"❌ **Error saving reflection:** {str(e)}")
-                st.write(f"🔍 Error type: {type(e).__name__}")
-                import traceback
-                st.write(f"🔍 Full traceback: {traceback.format_exc()}")
             
             # Record AI usage
             ai_service.usage_limiter.record_api_call(
